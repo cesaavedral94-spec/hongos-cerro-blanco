@@ -52,8 +52,10 @@ body{
 /* ── OBJETOS FLOTANTES ──
    Sin fondo, sin borde, sin sombra. Rotados, solapados, algunos
    sobresaliendo del viewport. El lienzo ES el contenedor. */
-.obj{position:absolute;pointer-events:auto;cursor:default;
+.obj{position:absolute;pointer-events:auto;cursor:pointer;
   transition:transform .5s cubic-bezier(.22,1,.36,1)}
+/* el ejemplar es un enlace: entra al mapa en su ficha */
+.obj:focus-visible{outline:2px solid var(--carbon);outline-offset:6px;border-radius:4px}
 .obj img{display:block;width:100%;height:auto}
 .obj:hover{animation-play-state:paused;z-index:40}
 .obj:hover img{transform:scale(1.05)}
@@ -126,11 +128,13 @@ button{font:inherit;cursor:pointer;border-radius:var(--radius-full);
    sin esto los ejemplares no alcanzan la mitad derecha de la pantalla */
 #info .flot{position:absolute;top:0;bottom:0;left:-55px;width:100vw;
   z-index:2;pointer-events:none}
-#info .flot .h{position:absolute;pointer-events:auto;
+#info .flot .h{position:absolute;pointer-events:auto;cursor:pointer;
   /* se acopla al ancho de ventana con minimo y maximo, para que no se
      empequenezca en portatil ni se agigante en pantalla grande */
   width:clamp(72px, var(--w,9vw), 250px);
   transition:transform .4s cubic-bezier(.22,1,.36,1)}
+#info .flot .h:focus-visible{outline:2px solid var(--paper-white);
+  outline-offset:6px;border-radius:4px}
 #info .flot .h img{display:block;width:100%;height:auto;
   transition:transform .35s cubic-bezier(.22,1,.36,1)}
 #info .flot .h:hover{animation-play-state:paused;z-index:40}
@@ -223,9 +227,18 @@ button{font:inherit;cursor:pointer;border-radius:var(--radius-full);
 #info .k.foto{background-size:cover;background-position:center;border:0;
   padding:13px;justify-content:flex-end;min-height:233px}
 #info .k.foto.alta{grid-row:span 2;min-height:479px}
+#info .k.foto{cursor:pointer}
+#info .k.foto:focus-visible{outline:2px solid var(--paper-white);outline-offset:4px}
 #info .k .etq{align-self:flex-start;background:var(--paper-white);color:var(--carbon);
   border-radius:var(--radius-full);padding:6px 13px;font-size:var(--fib-13);
-  letter-spacing:-0.02em;line-height:1;font-style:italic}
+  letter-spacing:-0.02em;line-height:1;font-style:italic;
+  display:inline-flex;align-items:center;gap:0}
+/* la flecha se abre paso al pasar el cursor: en reposo la etiqueta
+   sigue siendo solo el nombre, sin ruido */
+#info .k .etq .fl{font-style:normal;max-width:0;opacity:0;overflow:hidden;
+  transition:max-width .22s cubic-bezier(.22,1,.36,1), opacity .18s, margin-left .22s}
+#info .k.foto:hover .etq .fl,#info .k.foto:focus-visible .etq .fl{
+  max-width:1.2em;opacity:1;margin-left:.35em}
 
 @media(max-width:700px){
   #info .k.foto.alta{grid-row:span 1;min-height:233px}
@@ -285,7 +298,7 @@ button{font:inherit;cursor:pointer;border-radius:var(--radius-full);
     <span class="marca">Hongos del Bosque Seco</span>
   </div>
   <div id="acciones">
-    <button class="pill-lime" id="bEntrar">Entrar</button>
+    <button class="pill-lime" id="bEntrar">Entrar al mapa</button>
     <button class="pill-neutral" id="bInfo">Info</button>
   </div>
 </nav>
@@ -439,6 +452,22 @@ const OBJ=[
   {f:'mycena',        n:'Mycena polyadelpha',      x:80,y:74,w: 9,r:-5,  d:-10},
 ];
 
+/* Un ejemplar o una foto se comporta como enlace al mapa. Misma funcion
+   en los tres sitios (collage de la portada, ejemplares del panel de
+   info y cuadros de "La data") para que el destino no se bifurque.
+   Se manda el nombre y no un indice, asi sigue valiendo si el catalogo
+   se reordena. */
+function enlazarAlMapa(el,nombre){
+  const url='./mapa.html?sp='+encodeURIComponent(nombre);
+  el.setAttribute('role','link');
+  el.setAttribute('tabindex','0');
+  el.setAttribute('aria-label','Ver '+nombre+' en el mapa');
+  el.addEventListener('click',()=>{ location.href=url; });
+  el.addEventListener('keydown',ev=>{
+    if(ev.key==='Enter'||ev.key===' '){ ev.preventDefault(); location.href=url; }
+  });
+}
+
 const plate=document.getElementById('plate');
 OBJ.forEach((o,i)=>{
   const d=document.createElement('div');
@@ -450,8 +479,9 @@ OBJ.forEach((o,i)=>{
   d.style.setProperty('--rb',((i%3)+1.4).toFixed(1)+'deg');
   d.style.zIndex=10+(i%6);
   d.style.animation='drift '+(13+(i%7)*1.7).toFixed(1)+'s ease-in-out '+(i*-1.3).toFixed(1)+'s infinite';
-  d.innerHTML='<span class="nombre">'+o.n+'</span>'
+  d.innerHTML='<span class="nombre">'+o.n+' \u2192</span>'
              +'<img src="./portada/'+o.f+'.png" alt="'+o.n+'" draggable="false"/>';
+  enlazarAlMapa(d,o.n);
   plate.appendChild(d);
 });
 
@@ -496,9 +526,20 @@ if(flot) FLOT.forEach((o,i)=>{
   d.style.setProperty('--rb',((i%3)+1.2).toFixed(1)+'deg');
   d.style.zIndex=10+(i%5);
   d.style.animation='drift '+(14+(i%6)*1.9).toFixed(1)+'s ease-in-out '+(i*-1.7).toFixed(1)+'s infinite';
-  d.innerHTML='<span class="nm">'+o.n+'</span>'
+  d.innerHTML='<span class="nm">'+o.n+' \u2192</span>'
              +'<img src="./portada/'+o.f+'.png" alt="'+o.n+'" draggable="false"/>';
+  enlazarAlMapa(d,o.n);
   flot.appendChild(d);
+});
+
+/* ── Cuadros de foto de "La data".
+   El nombre sale de su propia etiqueta, asi que no hay una segunda
+   lista que mantener en sincronia con el HTML. ── */
+document.querySelectorAll('#info .k.foto').forEach(k=>{
+  const etq=k.querySelector('.etq'); if(!etq) return;
+  const n=etq.textContent.trim();
+  etq.insertAdjacentHTML('beforeend','<span class="fl">\u2192</span>');
+  enlazarAlMapa(k,n);
 });
 
 /* acciones */
@@ -512,6 +553,17 @@ document.addEventListener('keydown',e=>{
   if(e.key==='Escape') info.classList.remove('abierto');
   if(e.key==='Enter'&&!info.classList.contains('abierto')) location.href='./mapa.html';
 });
+
+/* El mapa enlaza aqui como index.html#info para abrir el panel de una
+   vez, sin que haya que pulsar "Info" al llegar. Se limpia el hash para
+   que al cerrar el panel y recargar no vuelva a abrirse solo. */
+function abrirInfoSiLoPideLaURL(){
+  const q=new URLSearchParams(location.search);
+  if(location.hash!=='#info' && !q.has('info')) return;
+  info.classList.add('abierto');
+  history.replaceState(null,'',location.pathname);
+}
+abrirInfoSiLoPideLaURL();
 </script>
 </body>
 </html>
