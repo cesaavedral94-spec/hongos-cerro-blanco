@@ -270,6 +270,15 @@ button{font:inherit;cursor:pointer;border-radius:var(--radius-full);
   border-top:1px solid rgba(255,255,255,.13)}
 #info .firma div{font-size:var(--fib-13);letter-spacing:-0.02em;line-height:1.4;opacity:.38}
 #info .firma .aut{opacity:.6;margin-top:5px}
+/* el nombre lleva al portafolio: subrayado tenue que se afirma al
+   pasar el cursor, sin romper la sobriedad del pie */
+#info .firma .aut a,#info .cred .quien a.pf{color:inherit;text-decoration:none;
+  border-bottom:1px solid rgba(255,255,255,.35);
+  transition:border-color .18s, color .18s}
+#info .firma .aut a:hover,#info .cred .quien a.pf:hover{
+  color:var(--voltage-lime);border-bottom-color:var(--voltage-lime)}
+#info .firma .aut a:focus-visible,#info .cred .quien a.pf:focus-visible{
+  outline:2px solid var(--voltage-lime);outline-offset:3px;border-radius:2px}
 #info .darktag{display:inline-block;background:rgba(255,255,255,.1);
   border-radius:var(--radius-full);padding:8px 21px;font-size:var(--fib-13);
   letter-spacing:-0.02em;line-height:1;margin:0 8px 8px 0}
@@ -411,7 +420,7 @@ button{font:inherit;cursor:pointer;border-radius:var(--radius-full);
       <div class="c"><div class="rol">Permisos de recolección</div><div class="quien">Prof. Julián Pérez Correa</div></div>
       <div class="c"><div class="rol">Edición fotográfica</div><div class="quien">Adriana Suárez</div></div>
       <div class="c"><div class="rol">Investigación desarrollada en</div><div class="quien">Centro de Investigaciones Biotecnológicas del Ecuador (CIBE)<br>Laboratorio de Micotectura · ESPOL</div></div>
-      <div class="c"><div class="rol">Desarrollo del catálogo y del mapa</div><div class="quien">Carlos Saavedra</div></div>
+      <div class="c"><div class="rol">Desarrollo del catálogo y del mapa</div><div class="quien"><a class="pf" href="https://cesaavedral94-spec.github.io/portafolio-web/" target="_blank" rel="noopener noreferrer" title="Portafolio de Carlos Saavedra">Carlos Saavedra</a></div></div>
     </div>
 
     <h2>Nota sobre los datos</h2>
@@ -424,7 +433,9 @@ button{font:inherit;cursor:pointer;border-radius:var(--radius-full);
 
     <div class="firma">
       <div>Diseño y programación del sitio, e implementación del mapa interactivo</div>
-      <div class="aut">Carlos Saavedra · 2026</div>
+      <div class="aut"><a href="https://cesaavedral94-spec.github.io/portafolio-web/"
+        target="_blank" rel="noopener noreferrer"
+        title="Portafolio de Carlos Saavedra">Carlos Saavedra</a> · 2026</div>
     </div>
   </div>
 </div>
