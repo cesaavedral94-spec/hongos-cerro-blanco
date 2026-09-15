@@ -681,7 +681,15 @@ function pintarEspecies(){
          del propio relleno ('ic_sinfoto.png'), asi que hay que mirar eso
          y la bandera sin_foto, no la ausencia de icono. */
       const relleno = !!e.sin_foto || !e.icono || e.icono==='ic_sinfoto.png';
+      /* autoPanOnFocus viene activado por defecto en Leaflet 1.9: cuando
+         el icono de un marcador recibe el foco del DOM, el mapa se
+         desplaza solo para encuadrarlo. Como aqui la camara se maneja a
+         proposito (volarReg, verTodos, los botones de area) y aplicarTam
+         recrea el icono en cada zoom —lo que devuelve el foco y dispara
+         otro desplazamiento—, ese automatismo pelea con el nuestro y
+         devuelve el mapa al marcador anterior. Se desactiva. */
       const m=L.marker([r.lat,r.lon],{icon:icono(e),
+        autoPanOnFocus:false,
         zIndexOffset: relleno ? -4000 : 0});
       MARCA[e.id+'_'+k]=m;
       PUNTOS.push({m:m,r:r,e:e});
@@ -1101,9 +1109,18 @@ Object.entries(caps).forEach(([id,g])=>
 document.getElementById('cExt').onchange=e=>{ verExt=e.target.checked; pintarZonas(); };
 /* Salto entre areas: a zoom 15 la vista cubre ~8 km y los bosques distan
    13,7 km, asi que no caben juntos. */
+/* Antes de mover la camara hay que soltar lo que la ancla: un popup
+   abierto se reencuadra solo (autoPan) y un icono con el foco tira del
+   mapa hacia si. Sin esto el vuelo arranca y vuelve al punto anterior. */
+function soltarAnclajes(){
+  map.closePopup();
+  const f=document.activeElement;
+  if(f && f!==document.body && f.closest && f.closest('.leaflet-marker-pane') && f.blur) f.blur();
+}
 document.querySelectorAll('#salto button').forEach(b=>b.onclick=()=>{
   document.querySelectorAll('#salto button').forEach(x=>x.classList.remove('on'));
   b.classList.add('on');
+  soltarAnclajes();
   const d=b.dataset.b;
   if(d==='PR')      map.flyTo([PR.lat,PR.lon],15,{duration:1.2});
   else if(d==='CB') map.flyTo([CB.lat,CB.lon],15,{duration:1.2});
