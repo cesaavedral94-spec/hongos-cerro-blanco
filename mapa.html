@@ -677,7 +677,10 @@ function pintarEspecies(){
          que cubre el 72% de su caja: por alfa no se puede ver a traves de
          el. Como es un relleno y no un ejemplar, se manda al fondo del
          apilamiento para que nunca le tape el clic a un hongo real. */
-      const relleno = !e.icono;
+      /* OJO: e.icono no viene vacio en estos casos, viene con el nombre
+         del propio relleno ('ic_sinfoto.png'), asi que hay que mirar eso
+         y la bandera sin_foto, no la ausencia de icono. */
+      const relleno = !!e.sin_foto || !e.icono || e.icono==='ic_sinfoto.png';
       const m=L.marker([r.lat,r.lon],{icon:icono(e),
         zIndexOffset: relleno ? -4000 : 0});
       MARCA[e.id+'_'+k]=m;
