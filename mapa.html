@@ -1,0 +1,1106 @@
+<!DOCTYPE html>
+<!--
+  Mapa Micológico — Bosques Protectores Prosperina y Cerro Blanco
+  Guayaquil, Ecuador
+
+  Contenido y datos:  © CIBE · Laboratorio de Biotecnología de la ESPOL
+  Diseño, HTML/CSS/JS y mapa interactivo:  Carlos Saavedra, 2026
+
+  Construido a mano, sin framework. Leaflet + Esri World Imagery.
+  Los contornos de bosque se consultan en vivo a OpenStreetMap.
+-->
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Mapa Micológico – Bosques Protectores Prosperina y Cerro Blanco</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  /* TWOMUCH.STUDIO — mismo sistema que la portada */
+  --gallery-plate:#e5e7eb; --carbon:#000; --chalk:#f4f4f4;
+  --paper-white:#fff; --concrete:#dedede; --voltage-lime:#e2ff70;
+  --bg:#e5e7eb;
+  --panel:#f4f4f4; --panel2:#e5e7eb;
+  --ink:#000; --ink2:rgba(0,0,0,.55);
+  --accent:#e2ff70; --accent2:rgba(0,0,0,.45); --warn:#000;
+  --line:#e5e7eb;
+}
+html,body{height:100%;background:var(--bg);color:var(--carbon);overflow:hidden;
+  font-family:'Roboto',ui-sans-serif,system-ui,-apple-system,sans-serif;
+  font-weight:400;letter-spacing:-0.02em}
+body,button,input,select{font-family:'Roboto',ui-sans-serif,system-ui,-apple-system,sans-serif;
+  font-weight:400;letter-spacing:-0.02em}
+#app{display:flex;height:100vh}
+
+/* ---------- PANEL LATERAL ---------- */
+#side{width:376px;flex-shrink:0;background:var(--chalk);color:var(--carbon);
+  display:flex;flex-direction:column;border-right:1px solid var(--gallery-plate);z-index:1000}
+#side header{padding:16px;background:var(--chalk);color:var(--carbon);
+  border-bottom:1px solid var(--gallery-plate);display:flex;align-items:center;gap:10px}
+#side header .pip{width:12px;height:12px;border-radius:9999px;background:var(--carbon);flex-shrink:0}
+#side header h1{font-family:inherit;font-weight:400;font-size:16px;letter-spacing:-0.03em;line-height:1.05;font-weight:400}
+#side header p{font-size:12px;letter-spacing:-0.04em;line-height:0.9;opacity:.5;margin-top:5px}
+
+#tabs{display:flex;gap:6px;background:var(--chalk);padding:10px 12px;border-bottom:1px solid var(--gallery-plate)}
+#tabs button{flex:1;padding:7px 10px;border:1px solid var(--gallery-plate);
+  background:var(--paper-white);font-size:12px;letter-spacing:-0.04em;line-height:1;
+  color:var(--ink2);cursor:pointer;border-radius:9999px}
+#tabs button:hover{background:var(--concrete)}
+#tabs button.on{color:var(--carbon);background:var(--voltage-lime);border-color:var(--voltage-lime)}
+
+.pane{display:none;flex:1;overflow-y:auto}
+.pane.on{display:block}
+
+#tools{padding:12px;background:var(--chalk);border-bottom:1px solid var(--gallery-plate);
+  display:flex;gap:.35rem;flex-wrap:wrap;align-items:center}
+#q{flex:1;min-width:120px;padding:8px 14px;border:1px solid var(--gallery-plate);
+  border-radius:9999px;font-size:14px;letter-spacing:-0.034em;
+  background:var(--paper-white);color:var(--carbon)}
+#q:focus{outline:0;border-color:var(--carbon)}
+
+.sp{padding:14px 12px;border-bottom:1px solid var(--gallery-plate);cursor:pointer;display:flex;gap:10px;align-items:flex-start}
+.sp:hover{background:var(--chalk)}
+.sp.sel{background:var(--voltage-lime)}
+.sp .th{width:44px;height:44px;flex-shrink:0;border-radius:4px;
+  background:var(--paper-white) center/contain no-repeat;border:1px solid var(--gallery-plate)}
+.sp .nm{font-style:italic;font-size:16px;letter-spacing:-0.03em;line-height:1.05;font-weight:400}
+.sp .mt{font-size:12px;letter-spacing:-0.04em;color:var(--ink2);margin-top:6px;line-height:1.33}
+.pin{font-size:12px;letter-spacing:-0.04em;padding:2px 8px;border-radius:9999px;margin-left:5px;line-height:1}
+.pin.si{background:var(--carbon);color:var(--paper-white)}
+.pin.no{background:var(--paper-white);color:var(--ink2);border:1px solid var(--gallery-plate)}
+
+/* ---------- FICHA ---------- */
+#ficha{padding:20px 16px 32px}
+#ficha .cerrar{float:right;border:1px solid var(--gallery-plate);background:var(--paper-white);
+  color:var(--carbon);width:28px;height:28px;border-radius:9999px;cursor:pointer;font-size:14px}
+#ficha .cerrar:hover{background:var(--concrete)}
+#ficha h2{font-style:italic;font-size:22px;letter-spacing:-0.024em;color:var(--carbon);
+  line-height:1.43;font-weight:400;padding-right:2.2rem}
+#ficha .tx{font-size:12px;letter-spacing:-0.04em;color:var(--ink2);margin:8px 0 16px;line-height:1.33}
+#ficha .gal{display:flex;gap:.5rem;overflow-x:auto;padding:.15rem .15rem 1rem;margin:0 -.15rem 1.25rem;
+  scrollbar-width:thin;scrollbar-color:var(--concrete) var(--chalk)}
+#ficha .gal::-webkit-scrollbar{height:8px}
+#ficha .gal::-webkit-scrollbar-track{background:var(--chalk);border-radius:9999px}
+#ficha .gal::-webkit-scrollbar-thumb{background:var(--concrete);border-radius:9999px}
+#ficha .gal::-webkit-scrollbar-thumb:hover{background:var(--carbon)}
+#ficha .gal img{height:96px;background:var(--paper-white);border-radius:4px;
+  border:1px solid var(--gallery-plate);cursor:pointer;flex-shrink:0}
+.lbl{font-size:12px;text-transform:uppercase;letter-spacing:-0.04em;color:var(--ink2);
+  margin-top:24px;margin-bottom:8px;font-weight:400;line-height:0.9}
+.val{font-size:14px;letter-spacing:-0.034em;line-height:1.6}
+.cred .cr{font-size:14px;letter-spacing:-0.034em;line-height:1.5;
+  padding:7px 0;border-bottom:1px solid var(--gallery-plate)}
+.cred .cr:last-child{border-bottom:0;padding-bottom:0}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 20px}
+.chip{font-size:12px;letter-spacing:-0.04em;line-height:1;padding:5px 11px;border-radius:9999px;
+  background:var(--paper-white);border:1px solid var(--gallery-plate);color:var(--carbon)}
+#geo{margin-top:28px;padding:16px;background:var(--paper-white);border-radius:4px;
+  border:1px solid var(--gallery-plate)}
+.reg{padding:10px 12px;border-radius:4px;background:var(--chalk);
+  border:1px solid var(--gallery-plate);margin-bottom:6px}
+.reg.ok{cursor:pointer}
+.reg.ok:hover{background:var(--voltage-lime);border-color:var(--voltage-lime)}
+.rc{font-size:14px;letter-spacing:-0.034em;color:var(--carbon);line-height:1}
+.cf{font-size:12px;background:var(--concrete);color:var(--carbon);padding:2px 8px;
+  border-radius:9999px;margin-left:6px;letter-spacing:-0.04em;line-height:1}
+.rd{font-size:12px;letter-spacing:-0.04em;color:var(--ink2);line-height:1.33;margin-top:5px}
+.med{display:flex;gap:.3rem;flex-wrap:wrap;margin-top:.25rem}
+.med span{font-size:12px;letter-spacing:-0.04em;background:var(--paper-white);
+  color:var(--carbon);border:1px solid var(--gallery-plate);padding:3px 9px;border-radius:9999px}
+.med b{font-weight:400;color:var(--ink2)}
+#geo .co{font:400 12px 'Roboto',ui-sans-serif,system-ui,-apple-system,sans-serif;font-variant-numeric:tabular-nums;color:var(--ink2);margin:6px 0 0;letter-spacing:-0.02em}
+.btn{padding:9px 16px;border:0;border-radius:9999px;font-size:14px;font-weight:400;
+  letter-spacing:-0.034em;line-height:1;cursor:pointer;font-family:'Roboto',ui-sans-serif,system-ui,-apple-system,sans-serif}
+.btn.p{background:var(--voltage-lime);color:var(--carbon)}
+.btn.p:hover{background:#d7f95e}
+.btn.s{background:var(--paper-white);color:var(--carbon);border:1px solid var(--gallery-plate)}
+.btn.s:hover{background:var(--concrete)}
+.btn.w{background:var(--carbon);color:var(--paper-white)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+
+/* ---------- CAPAS / INFO ---------- */
+.blk{padding:20px 16px;border-bottom:1px solid var(--gallery-plate)}
+.blk h3{font-size:12px;text-transform:uppercase;letter-spacing:-0.04em;color:var(--ink2);
+  margin-bottom:12px;font-weight:400;line-height:0.9}
+.row{display:flex;align-items:center;gap:8px;font-size:14px;letter-spacing:-0.034em;
+  padding:5px 0;cursor:pointer;line-height:1.33}
+.row input{accent-color:var(--carbon);cursor:pointer}
+.sw{width:12px;height:12px;border-radius:9999px;flex-shrink:0;border:1px solid var(--gallery-plate)}
+.stat{display:flex;justify-content:space-between;gap:12px;font-size:14px;letter-spacing:-0.034em;
+  padding:10px 0;border-bottom:1px solid var(--gallery-plate);line-height:1.33}
+.stat b{color:var(--carbon);font-weight:400;text-align:right;flex-shrink:0}
+.stat.cl{cursor:pointer;padding-left:6px;padding-right:6px;margin-left:-6px;margin-right:-6px;
+  border-radius:4px;transition:background .12s}
+.stat.cl:hover{background:var(--concrete)}
+.stat.cl.on{background:var(--voltage-lime)}
+.note{font-size:12px;letter-spacing:-0.04em;line-height:1.33;color:var(--ink2);
+  background:var(--paper-white);padding:12px;border-radius:4px;
+  border:1px solid var(--gallery-plate);margin-top:12px}
+
+/* ---------- MAPA ---------- */
+#wrap{flex:1;position:relative}
+#map{position:absolute;inset:0;background:var(--gallery-plate)}
+.zt{background:transparent !important;border:0 !important;color:var(--carbon) !important;
+  font:400 12px 'Roboto',ui-sans-serif,system-ui,-apple-system,sans-serif !important;
+  letter-spacing:-0.02em !important;box-shadow:none !important;padding:0 !important;
+  font-variant-numeric:tabular-nums}
+.zt::before{display:none !important}
+/* etiqueta del recuadro de extension: si va sobre el satelite necesita fondo */
+.leaflet-tooltip.zt[class*="top"]{background:var(--carbon) !important;
+  color:var(--paper-white) !important;padding:3px 9px !important;border-radius:9999px !important}
+#salto{position:absolute;top:12px;left:56px;z-index:900;display:flex;gap:6px;
+  background:var(--chalk);padding:6px;border-radius:9999px;
+  border:1px solid var(--gallery-plate)}
+#salto button{border:0;background:none;color:var(--ink2);cursor:pointer;border-radius:9999px;
+  padding:7px 14px;font-size:14px;font-weight:400;letter-spacing:-0.034em;line-height:1;
+  font-family:'Roboto',ui-sans-serif,system-ui,-apple-system,sans-serif}
+#salto button:hover{background:var(--concrete);color:var(--carbon)}
+/* los botones toman el color de su bosque, el mismo de la lista de
+   sitios de muestreo: azul Prosperina, naranja Cerro Blanco */
+#salto button.on{color:var(--carbon)}
+#salto button[data-b="PR"].on{background:#5b9bd5}
+#salto button[data-b="CB"].on{background:#e8a33d}
+#salto button[data-b="TODO"].on{background:var(--concrete)}
+/* punto de color permanente, como en la lista */
+#salto button::before{content:'';display:inline-block;width:8px;height:8px;
+  border-radius:9999px;margin-right:7px;vertical-align:1px}
+#salto button[data-b="PR"]::before{background:#5b9bd5}
+#salto button[data-b="CB"]::before{background:#e8a33d}
+#salto button[data-b="TODO"]::before{display:none}
+#salto button.on::before{background:var(--carbon)}
+#hud{position:absolute;left:12px;bottom:22px;z-index:900;background:var(--chalk);
+  color:var(--carbon);padding:7px 14px;border-radius:9999px;
+  font:400 12px 'Roboto',ui-sans-serif,system-ui,-apple-system,sans-serif;font-variant-numeric:tabular-nums;letter-spacing:-0.02em;
+  border:1px solid var(--gallery-plate);pointer-events:none}
+#modo{position:absolute;top:12px;left:50%;transform:translateX(-50%);z-index:900;
+  background:var(--carbon);color:var(--paper-white);padding:9px 16px;border-radius:9999px;
+  font-size:14px;letter-spacing:-0.034em;line-height:1;font-family:'Roboto',ui-sans-serif,system-ui,-apple-system,sans-serif;
+  border:1px solid var(--carbon);display:none}
+#modo.on{display:block}
+#load{position:absolute;top:12px;right:60px;z-index:900;background:var(--chalk);
+  color:var(--ink2);padding:7px 14px;border-radius:9999px;font-size:12px;
+  letter-spacing:-0.04em;line-height:1;border:1px solid var(--gallery-plate)}
+.mk{background:none;border:0}
+/* El marcador es el hongo recortado, sin caja ni fondo.
+   OJO: Leaflet fuerza max-width/max-height:none !important en el panel de
+   marcadores, asi que hay que fijar width/height con !important. */
+.mk .wrap{width:var(--mk,46px);height:var(--mk,46px);display:flex;align-items:center;justify-content:center;
+  transform-origin:center bottom;cursor:pointer;
+  transition:transform .22s cubic-bezier(.34,1.4,.64,1)}
+.mk .wrap img{
+  display:block;
+  width:var(--mk,46px) !important; height:var(--mk,46px) !important;
+  object-fit:contain;
+  /* unica sombra del sistema: los marcadores van sobre imagen aerea,
+     no sobre el lienzo gris; sin separacion no se leen */
+  filter:drop-shadow(0 1px 3px rgba(0,0,0,.5));
+  transition:filter .22s}
+/* los iconos circulares llevan un aro blanco para separarse del satelite */
+.mk .wrap.circ img{border-radius:9999px;box-shadow:0 0 0 2px var(--paper-white)}
+/* seleccionado */
+.mk .wrap.sel{transform:scale(1.35)}
+.mk .wrap.sel img{filter:drop-shadow(0 0 0 2px var(--voltage-lime)) drop-shadow(0 1px 3px rgba(0,0,0,.5))}
+/* cursor encima: crece moderado y pasa al frente (va al final para ganarle a .sel) */
+.mk .wrap:hover,.mk .wrap.sel:hover{transform:scale(var(--mkh,2.1))}
+/* con el popup abierto NO se amplia: si no, invadiria la nube */
+.mk .wrap.abierto,.mk .wrap.abierto:hover{transform:scale(1.2)}
+.mk .wrap:hover img{filter:drop-shadow(0 2px 6px rgba(0,0,0,.55))}
+.leaflet-marker-icon.mk:hover{z-index:9999 !important}
+.leaflet-popup-pane{z-index:20000 !important}
+.leaflet-popup{z-index:20000}
+code{font-family:inherit;font-variant-numeric:tabular-nums}
+/* Leaflet trae su propio stack (Helvetica Neue/Arial) en .leaflet-container,
+   que alcanza a los controles de zoom y a la barra de atribucion. */
+.leaflet-container,.leaflet-container a,.leaflet-control,.leaflet-control-attribution,
+.leaflet-control-attribution a,.leaflet-bar a{
+  font-family:'Roboto',ui-sans-serif,system-ui,-apple-system,sans-serif}
+.leaflet-popup-content{font-family:'Roboto',ui-sans-serif,system-ui,-apple-system,sans-serif;font-size:14px;letter-spacing:-0.034em;
+  margin:14px 16px;padding-right:1.2rem;line-height:1.45;font-size:14px;letter-spacing:-0.034em}
+.leaflet-popup-content b:first-child,.leaflet-popup-content i:first-child{display:inline-block;
+  max-width:calc(100% - .3rem)}
+.leaflet-container a.leaflet-popup-close-button{top:6px;right:6px;width:22px;height:22px;
+  font-size:16px;line-height:20px;color:var(--ink2)}
+.leaflet-popup-content-wrapper{border-radius:4px}
+.leaflet-popup-content i{font-size:16px;letter-spacing:-0.03em;font-weight:400}
+#lb{position:fixed;inset:0;background:var(--carbon);z-index:5000;display:none;
+  align-items:center;justify-content:center;cursor:zoom-out}
+#lb.on{display:flex}
+#lb img{max-width:82%;max-height:82%;border-radius:4px}
+#lb .nav{position:absolute;top:50%;transform:translateY(-50%);z-index:2;
+  width:48px;height:48px;border:1px solid rgba(255,255,255,.28);
+  background:rgba(0,0,0,.55);color:var(--paper-white);
+  border-radius:9999px;cursor:pointer;font-size:26px;line-height:1;
+  display:flex;align-items:center;justify-content:center;
+  font-family:inherit;transition:background .15s}
+#lb .nav:hover{background:var(--voltage-lime);color:var(--carbon);border-color:var(--voltage-lime)}
+#lb .prev{left:24px} #lb .next{right:24px}
+#lb .nav[disabled]{opacity:.22;cursor:default}
+#lb .nav[disabled]:hover{background:rgba(0,0,0,.55);color:var(--paper-white);
+  border-color:rgba(255,255,255,.28)}
+#lbInfo{position:absolute;left:0;right:0;bottom:26px;display:flex;gap:12px;
+  align-items:center;justify-content:center;color:var(--paper-white);
+  font-size:12px;letter-spacing:-0.02em;line-height:1;pointer-events:none}
+#lbNom{font-style:italic;opacity:.85}
+#lbCnt{opacity:.5;font-variant-numeric:tabular-nums}
+@media(max-width:700px){
+  #lb .prev{left:10px} #lb .next{right:10px}
+  #lb .nav{width:40px;height:40px;font-size:22px}
+}
+@media(max-width:820px){#side{width:100%;position:absolute;height:48%;bottom:0;top:auto}#wrap{height:52%}}
+</style>
+</head>
+<body>
+<div id="app">
+  <aside id="side">
+    <header>
+      <h1>Mapa Micológico</h1>
+      <p>Bosques Protectores Prosperina y Cerro Blanco · Guayaquil</p>
+    </header>
+    <nav id="tabs">
+      <button class="on" data-p="lista">Especies</button>
+      <button data-p="capas">Capas</button>
+      <button data-p="info">Datos</button>
+    </nav>
+
+    <div class="pane on" id="p-lista">
+      <div id="tools">
+        <input id="q" placeholder="Buscar: especie, color, sustrato, comestible, sitio…"/>
+      </div>
+      <div id="lista"></div>
+    </div>
+
+    <div class="pane" id="p-capas">
+      <div class="blk">
+        <h3>Mapa base</h3>
+        <label class="row"><input type="radio" name="base" value="sat" checked> Satélite (Esri)</label>
+        <label class="row"><input type="radio" name="base" value="topo"> Topográfico</label>
+        <label class="row"><input type="radio" name="base" value="calle"> Calles (OSM)</label>
+        <label class="row"><input type="radio" name="base" value="hib"> Satélite + etiquetas</label>
+      </div>
+      <div class="blk">
+        <h3>Capas</h3>
+        <label class="row"><input type="checkbox" id="cBos" checked><span class="sw" style="background:#6b8f4e"></span> Bosques protectores</label>
+        <label class="row"><input type="checkbox" id="cSen" checked><span class="sw" style="background:#e8a33d"></span> Senderos</label>
+        <label class="row"><input type="checkbox" id="cZon" checked><span class="sw" style="background:#5b9bd5"></span> Sitios de muestreo</label>
+        <label class="row" style="padding-left:1.3rem"><input type="checkbox" id="cExt"><span class="sw" style="background:transparent;border:1.5px dashed #5b9bd5"></span> Extensión de cada sitio</label>
+        <label class="row"><input type="checkbox" id="cEsp" checked><span class="sw" style="background:#c0703a"></span> Especímenes</label>
+      </div>
+      <div class="blk">
+        <h3>Gestos</h3>
+        <label class="row"><input type="radio" name="gesto" value="trackpad" checked> Trackpad: dos dedos desplaza, pellizco hace zoom</label>
+        <label class="row"><input type="radio" name="gesto" value="raton"> Ratón: la rueda hace zoom</label>
+      </div>
+      <div class="blk">
+        <h3>Herramientas de campo</h3>
+        <div style="display:flex;gap:.35rem;flex-wrap:wrap">
+          <button class="btn s" id="bMed">Medir</button>
+          <button class="btn s" id="bOSM">Recargar OSM</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="pane" id="p-info">
+      <div class="blk">
+        <h3>Sitios de muestreo</h3>
+        <div id="sitios"></div>
+      </div>
+      <div class="blk">
+        <h3>Datos globales</h3>
+        <div class="stat"><span>Salidas de campo</span><b>19</b></div>
+        <div class="stat"><span>Especímenes en la base</span><b>283</b></div>
+        <div class="stat"><span>Con coordenadas</span><b>227</b></div>
+        <div class="stat"><span>Sitios de muestreo</span><b>9</b></div>
+        <div class="stat"><span>Fichas en el catálogo</span><b>24</b></div>
+        <div class="stat"><span>Registros vinculados</span><b>52</b></div>
+        <div class="stat"><span>Puntos en el mapa</span><b>41</b></div>
+      </div>
+
+    </div>
+  </aside>
+
+  <div id="wrap">
+    <div id="map"></div>
+    <div id="modo">Clic en el mapa para ubicar · <b id="modoSp"></b> · Esc para cancelar</div>
+    <div id="load">Cargando OSM…</div>
+    <div id="salto">
+      <button data-b="PR" class="on">Prosperina</button>
+      <button data-b="CB">Cerro Blanco</button>
+      <button data-b="TODO">Ver todo</button>
+    </div>
+    <div id="hud">—</div>
+  </div>
+</div>
+<div id="lb">
+  <button class="nav prev" id="lbPrev" aria-label="Anterior">‹</button>
+  <img id="lbi" src="" alt=""/>
+  <button class="nav next" id="lbNext" aria-label="Siguiente">›</button>
+  <div id="lbInfo"><span id="lbNom"></span><span id="lbCnt"></span></div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
+<script>
+/* ══════════════════════════════════════════════════════════════════
+   CENTROS DE REFERENCIA
+   Cerro Blanco  : 02°10'S 80°02'W · Km 16 vía a la Costa
+   Prosperina    : Campus ESPOL Gustavo Galindo · Km 30,5 vía Perimetral
+   ══════════════════════════════════════════════════════════════════ */
+const CB={lat:-2.13681,lon:-80.08702,nombre:'Bosque Protector Cerro Blanco',ha:6078};
+const PR={lat:-2.15049,lon:-79.96390,nombre:'Bosque y Vegetación Protector Prosperina',ha:264.86};
+
+/* Sitios reales de muestreo, derivados de las coordenadas de la base de campo */
+const SITIOS=[{"sitio": "Cerro Blanco: Ruta Caseta Jaguar", "n": 56, "lat": -2.136806, "lon": -80.087019, "bosque": "Cerro Blanco", "lat_min": -2.153889, "lat_max": -2.133889, "lon_min": -80.090278, "lon_max": -80.068611, "ancho_m": 2410, "alto_m": 2226}, {"sitio": "Albarrada Martín", "n": 52, "lat": -2.14978, "lon": -79.966227, "bosque": "Prosperina", "lat_min": -2.150833, "lat_max": -2.147778, "lon_min": -79.972222, "lon_max": -79.955556, "ancho_m": 1854, "alto_m": 340}, {"sitio": "Laguna de oxidación", "n": 38, "lat": -2.147285, "lon": -79.955192, "bosque": "Prosperina", "lat_min": -2.159722, "lat_max": -2.145833, "lon_min": -79.956111, "lon_max": -79.954444, "ancho_m": 185, "alto_m": 1546}, {"sitio": "Albarrada Monos", "n": 29, "lat": -2.151877, "lon": -79.974808, "bosque": "Prosperina", "lat_min": -2.154167, "lat_max": -2.149444, "lon_min": -79.977778, "lon_max": -79.972222, "ancho_m": 618, "alto_m": 526}, {"sitio": "Albarrada Cuevas y Cañas", "n": 28, "lat": -2.155823, "lon": -79.962669, "bosque": "Prosperina", "lat_min": -2.157222, "lat_max": -2.151111, "lon_min": -79.965556, "lon_max": -79.956944, "ancho_m": 958, "alto_m": 680}, {"sitio": "Ruta Lago", "n": 14, "lat": -2.149246, "lon": -79.960179, "bosque": "Prosperina", "lat_min": -2.15, "lat_max": -2.148333, "lon_min": -79.960556, "lon_max": -79.959444, "ancho_m": 124, "alto_m": 186}, {"sitio": "FCNM (Campus)", "n": 4, "lat": -2.146528, "lon": -79.967569, "bosque": "Prosperina", "lat_min": -2.146944, "lat_max": -2.146389, "lon_min": -79.968056, "lon_max": -79.966944, "ancho_m": 124, "alto_m": 62}, {"sitio": "Lago ESPOL", "n": 4, "lat": -2.149861, "lon": -79.960347, "bosque": "Prosperina", "lat_min": -2.15, "lat_max": -2.149444, "lon_min": -79.960556, "lon_max": -79.960278, "ancho_m": 31, "alto_m": 62}, {"sitio": "FCV (Campus)", "n": 2, "lat": -2.152778, "lon": -79.953889, "bosque": "Prosperina", "lat_min": -2.152778, "lat_max": -2.152778, "lon_min": -79.953889, "lon_max": -79.953889, "ancho_m": 0, "alto_m": 0}];
+
+let ESP=[];            /* especies */
+let sel=null, modo=false, midiendo=false, medPts=[];
+const MARCA={};   /* id_k -> marcador Leaflet (fuera de ESP: se exporta a JSON) */
+const PUNTOS=[];  /* {m, r} para desplegar los que coinciden */
+const SITIO_MK={}; /* sitio -> {marcador, recuadro} */
+const LS='mapa_micologico_coords';
+
+/* ---------- MAPA ---------- */
+const map=L.map('map',{
+  center:[-2.15049,-79.96390], zoom:15, zoomControl:true, attributionControl:true,
+  /* Navegacion suave: por defecto Leaflet solo admite niveles enteros y salta
+     uno completo (escala x2) con cualquier gesto de trackpad. */
+  zoomSnap:0,               /* zoom continuo, sin escalones */
+  zoomDelta:0.5,            /* botones y teclado avanzan medio nivel */
+  wheelPxPerZoomLevel:140,  /* trackpad menos sensible (por defecto 60) */
+  wheelDebounceTime:60,
+  zoomAnimation:true,
+  markerZoomAnimation:true,
+  inertiaDeceleration:2600
+});
+const bases={
+ sat : L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+        {maxZoom:19,attribution:'Esri, Maxar, Earthstar Geographics'}),
+ topo: L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
+        {maxZoom:17,attribution:'OpenTopoMap (CC-BY-SA)'}),
+ calle:L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+        {maxZoom:19,attribution:'© OpenStreetMap'}),
+};
+const etiquetas=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',{maxZoom:19});
+bases.sat.addTo(map);
+let baseActual=bases.sat;
+
+const gBos=L.layerGroup().addTo(map);
+const gSen=L.layerGroup().addTo(map);
+const gZon=L.layerGroup().addTo(map);
+const gEsp=L.layerGroup().addTo(map);
+/* ══ GESTOS DE TRACKPAD ═══════════════════════════════════════════════
+   En macOS el desplazamiento de dos dedos y el pellizco llegan los dos
+   como evento 'wheel'; el pellizco se distingue porque trae ctrlKey.
+   Leaflet por defecto manda ambos a zoom, asi que no se puede desplazar.
+   ══════════════════════════════════════════════════════════════════ */
+/* Tamano del marcador segun el zoom: a zoom 18 el detalle del satelite
+   es fino y un icono de 46px se pierde. Se recrea el icono en cada cambio
+   porque iconAnchor y popupAnchor dependen del tamano. */
+function tamIcono(z){
+  return Math.round(Math.max(32, Math.min(96, 34*Math.pow(1.20, z-13))));
+}
+let TAM=46;
+function aplicarTam(){
+  const t=tamIcono(map.getZoom());
+  if(t===TAM) return;
+  TAM=t;
+  const cont=map.getContainer();
+  cont.style.setProperty('--mk', TAM+'px');
+  /* el hover apunta a ~112px finales, sin desbordar a zoom alto */
+  cont.style.setProperty('--mkh', Math.max(1.3, Math.min(2.4, 112/TAM)).toFixed(2));
+  PUNTOS.forEach(o=>o.m.setIcon(icono(o.e)));
+}
+
+let _enZoom=false;
+let gestoDosDedos=true;
+map.scrollWheelZoom.disable();
+
+/* Un gesto continuo dispara decenas de eventos 'wheel'. Si cada uno lanza
+   un zoom ANIMADO, el siguiente interrumpe al anterior y el zoom se traba.
+   Por eso se aplica sin animacion y se acumula el delta por fotograma. */
+let _dz=0, _pt=null, _raf=null, _finZoom=null;
+
+function aplicarZoom(){
+  _raf=null;
+  if(!_dz) return;
+  const z=Math.max(map.getMinZoom(), Math.min(map.getMaxZoom(), map.getZoom()+_dz));
+  _dz=0;
+  map.setZoomAround(_pt, z, {animate:false});
+  /* el abanico se rehace recien cuando el gesto para */
+  _enZoom=true;
+  clearTimeout(_finZoom);
+  _finZoom=setTimeout(()=>{ _enZoom=false; aplicarTam(); desplegar(); }, 180);
+}
+
+map.getContainer().addEventListener('wheel', ev=>{
+  const pellizco = ev.ctrlKey || ev.metaKey;
+  ev.preventDefault();
+
+  if(pellizco || !gestoDosDedos){
+    /* pellizco de trackpad, o rueda de raton en modo raton */
+    const paso = pellizco
+      ? Math.max(-0.6, Math.min(0.6, -ev.deltaY*0.03))
+      : -Math.sign(ev.deltaY)*0.5;
+    _dz += paso;
+    _pt = map.mouseEventToContainerPoint(ev);
+    if(!_raf) _raf=requestAnimationFrame(aplicarZoom);
+  }else{
+    map.panBy([ev.deltaX, ev.deltaY], {animate:false});
+  }
+}, {passive:false});
+
+const gGuia=L.layerGroup().addTo(map);
+const gExt=L.layerGroup().addTo(map);  /* recuadros de extension */
+let verExt=false;
+const gDib=new L.FeatureGroup().addTo(map);
+const gMed=L.layerGroup().addTo(map);
+
+map.addControl(new L.Control.Draw({
+  edit:{featureGroup:gDib},
+  draw:{polyline:{shapeOptions:{color:'#e8a33d',weight:4}},
+        polygon:{shapeOptions:{color:'#7cb342',weight:2}},
+        rectangle:false,circle:false,circlemarker:false,marker:true}
+}));
+map.on(L.Draw.Event.CREATED,e=>{
+  gDib.addLayer(e.layer);
+  if(e.layerType==='polyline'){
+    const n=prompt('Nombre del sendero o ruta:','Sendero nuevo');
+    if(n) e.layer.bindTooltip(n,{permanent:true,direction:'center',className:'tt'});
+  }
+});
+
+/* ---------- OSM EN VIVO ---------- */
+const ENDPOINTS=['https://overpass-api.de/api/interpreter',
+                 'https://overpass.kumi.systems/api/interpreter',
+                 'https://maps.mail.ru/osm/tools/overpass/api/interpreter'];
+
+async function overpass(q){
+  for(const url of ENDPOINTS){
+    try{
+      const r=await fetch(url,{method:'POST',body:'data='+encodeURIComponent(q),
+        headers:{'Content-Type':'application/x-www-form-urlencoded'}});
+      if(r.ok) return await r.json();
+    }catch(err){ /* siguiente mirror */ }
+  }
+  return null;
+}
+
+function coordsDe(el){
+  if(el.geometry) return el.geometry.map(p=>[p.lat,p.lon]);
+  return null;
+}
+
+async function cargarOSM(){
+  const hud=document.getElementById('load');
+  hud.textContent='Cargando OSM…'; hud.style.display='block';
+  gBos.clearLayers(); gSen.clearLayers();
+
+  const bbox='-2.32,-80.16,-2.05,-79.90';
+  /* En OSM estos bosques estan como natural=wood, NO como boundary=protected_area */
+  const q='[out:json][timeout:90];(nwr[~"^name"~"Bosque Protector"]('+bbox+');'
+        + 'nwr[boundary=protected_area]('+bbox+');'
+        + 'nwr[leisure=nature_reserve]('+bbox+'););out geom tags;';
+
+  const data=await overpass(q);
+  let nBos=0;
+  if(data && data.elements){
+    data.elements.forEach(el=>{
+      const nom=(el.tags&&(el.tags.name||el.tags['name:es']))||'Área protegida';
+      let latlngs=coordsDe(el);
+      if(!latlngs && el.members){
+        el.members.filter(m=>m.geometry&&m.role!=='inner').forEach(m=>{
+          const c=m.geometry.map(p=>[p.lat,p.lon]);
+          if(c.length>2){ dibujarBosque(c,nom); nBos++; }
+        });
+        return;
+      }
+      if(latlngs&&latlngs.length>2){ dibujarBosque(latlngs,nom); nBos++; }
+    });
+  }
+  if(nBos===0) fallbackBosques();
+
+  /* senderos */
+  const qs=`[out:json][timeout:60];
+  (
+    way[highway=path](${bbox});
+    way[highway=footway](${bbox});
+    way[highway=track](${bbox});
+    way[route=hiking](${bbox});
+  );
+  out geom tags;`;
+  const ds=await overpass(qs);
+  let nSen=0;
+  if(ds&&ds.elements){
+    ds.elements.forEach(el=>{
+      const c=coordsDe(el); if(!c||c.length<2) return;
+      const nom=(el.tags&&el.tags.name)||'';
+      const destacado=/buena vista|canoa|higuer|mono aullador|prosperina/i.test(nom);
+      const ln=L.polyline(c,{color:destacado?'#ffd54f':'#e8a33d',weight:destacado?4:2,
+        opacity:destacado?.95:.6,dashArray:destacado?null:'4,4'});
+      if(nom) ln.bindTooltip(nom,{sticky:true});
+      gSen.addLayer(ln); nSen++;
+    });
+  }
+  hud.textContent=nBos?`OSM: ${nBos} áreas · ${nSen} senderos`:'OSM no disponible — usando contornos aproximados';
+  setTimeout(()=>hud.style.display='none',4200);
+}
+
+function dibujarBosque(latlngs,nom){
+  const esCB=/cerro blanco/i.test(nom), esPR=/prosperina|espol/i.test(nom);
+  const col=esCB?'#6b8f4e':(esPR?'#8bc34a':'#5c8a4a');
+  const pg=L.polygon(latlngs,{color:col,weight:2.5,fillColor:col,fillOpacity:.16});
+  pg.bindPopup(`<b>${nom}</b>`);
+  pg.bindTooltip(nom,{sticky:true});
+  gBos.addLayer(pg);
+}
+
+/* Contornos de respaldo.
+   Prosperina: 7 poligonos REALES descargados de OpenStreetMap (328 puntos).
+   Cerro Blanco: aproximacion circular - el bosque no esta completamente
+   trazado en OSM; ajustar con el shapefile de ProBosque cuando este. */
+const PROSPERINA_OSM=[[[-2.14801,-79.96697],[-2.14798,-79.96646],[-2.14809,-79.96578],[-2.14827,-79.96536],[-2.14855,-79.96494],[-2.14911,-79.96416],[-2.14937,-79.96379],[-2.15035,-79.96265],[-2.15074,-79.96295],[-2.1511,-79.96335],[-2.15124,-79.96354],[-2.15146,-79.96384],[-2.1517,-79.96426],[-2.1514,-79.96474],[-2.15114,-79.96497],[-2.15065,-79.96515],[-2.15025,-79.96533],[-2.14989,-79.96548],[-2.14975,-79.96553],[-2.14962,-79.96565],[-2.14919,-79.966],[-2.14894,-79.96635],[-2.14879,-79.96654],[-2.14885,-79.96707],[-2.14839,-79.96704],[-2.14801,-79.96697]],[[-2.14493,-79.96466],[-2.14466,-79.96431],[-2.14516,-79.96385],[-2.14527,-79.96391],[-2.14532,-79.96386],[-2.14533,-79.96381],[-2.14533,-79.96378],[-2.14519,-79.96353],[-2.14444,-79.96267],[-2.14402,-79.96293],[-2.1431,-79.96247],[-2.14276,-79.96223],[-2.14233,-79.96303],[-2.14268,-79.96292],[-2.14276,-79.96297],[-2.14326,-79.9633],[-2.14353,-79.96347],[-2.14354,-79.9638],[-2.14336,-79.96387],[-2.14301,-79.96457],[-2.14249,-79.96515],[-2.14179,-79.96564],[-2.1411,-79.96576],[-2.14083,-79.96552],[-2.14094,-79.96515],[-2.1412,-79.96478],[-2.1413,-79.96469],[-2.14115,-79.96459],[-2.14088,-79.96455],[-2.14085,-79.96433],[-2.14062,-79.96404],[-2.14052,-79.96403],[-2.14043,-79.96405],[-2.14032,-79.96408],[-2.14021,-79.96402],[-2.14012,-79.96401],[-2.14002,-79.96405],[-2.13991,-79.96408],[-2.13986,-79.96403],[-2.13976,-79.96405],[-2.13974,-79.964],[-2.13983,-79.96387],[-2.14006,-79.96383],[-2.14017,-79.96381],[-2.14027,-79.96375],[-2.14042,-79.9637],[-2.1406,-79.9636],[-2.14072,-79.96352],[-2.14079,-79.96348],[-2.14078,-79.96331],[-2.14087,-79.96318],[-2.14081,-79.963],[-2.14035,-79.963],[-2.14027,-79.96291],[-2.14008,-79.96291],[-2.14001,-79.96321],[-2.13976,-79.96326],[-2.13965,-79.96327],[-2.13957,-79.96356],[-2.13949,-79.96382],[-2.1393,-79.96403],[-2.13889,-79.96398],[-2.13857,-79.96378],[-2.1382,-79.96385],[-2.13967,-79.96774],[-2.13968,-79.96805],[-2.14016,-79.96829],[-2.14044,-79.96811],[-2.14065,-79.96817],[-2.14068,-79.96836],[-2.14097,-79.96851],[-2.14129,-79.96816],[-2.14103,-79.96782],[-2.14115,-79.96747],[-2.14107,-79.967],[-2.1413,-79.96668],[-2.14188,-79.9663],[-2.14225,-79.96646],[-2.1427,-79.96657],[-2.14286,-79.96649],[-2.14295,-79.9661],[-2.14285,-79.96591],[-2.14291,-79.96562],[-2.14322,-79.9653],[-2.14346,-79.96517],[-2.14384,-79.9654],[-2.14493,-79.96466]],[[-2.15048,-79.96264],[-2.15086,-79.96207],[-2.15093,-79.96173],[-2.15089,-79.96137],[-2.15082,-79.96099],[-2.15062,-79.96038],[-2.15056,-79.96024],[-2.15083,-79.96053],[-2.15101,-79.96062],[-2.15129,-79.96073],[-2.15155,-79.96085],[-2.15164,-79.96091],[-2.15163,-79.96106],[-2.15164,-79.96118],[-2.15173,-79.96127],[-2.15181,-79.96128],[-2.15199,-79.96138],[-2.1523,-79.96147],[-2.15247,-79.96157],[-2.15264,-79.96158],[-2.1526,-79.96131],[-2.15236,-79.96119],[-2.15229,-79.96097],[-2.15254,-79.96112],[-2.15262,-79.9612],[-2.1527,-79.96163],[-2.15283,-79.96176],[-2.15291,-79.96201],[-2.1527,-79.96252],[-2.15262,-79.96286],[-2.15261,-79.96315],[-2.15261,-79.96343],[-2.15244,-79.96383],[-2.1524,-79.96403],[-2.15234,-79.96418],[-2.15221,-79.96421],[-2.15203,-79.96423],[-2.15185,-79.96416],[-2.15148,-79.96375],[-2.15111,-79.96324],[-2.15071,-79.96279],[-2.15048,-79.96264]],[[-2.14885,-79.96707],[-2.14879,-79.96654],[-2.14894,-79.96635],[-2.14919,-79.966],[-2.14962,-79.96565],[-2.15025,-79.96533],[-2.15114,-79.96497],[-2.15163,-79.96445],[-2.1517,-79.96426],[-2.1521,-79.96435],[-2.1523,-79.96429],[-2.15273,-79.96422],[-2.15348,-79.96357],[-2.15398,-79.96335],[-2.15438,-79.96306],[-2.15456,-79.96297],[-2.15497,-79.96299],[-2.15523,-79.963],[-2.15559,-79.96294],[-2.15618,-79.96277],[-2.15689,-79.96454],[-2.15695,-79.96494],[-2.15694,-79.96529],[-2.15699,-79.96569],[-2.15681,-79.96609],[-2.15674,-79.96647],[-2.15682,-79.96666],[-2.157,-79.96681],[-2.15748,-79.96708],[-2.15795,-79.96727],[-2.15808,-79.96745],[-2.15821,-79.96781],[-2.15817,-79.96803],[-2.15804,-79.96827],[-2.1578,-79.96871],[-2.15725,-79.96906],[-2.15703,-79.96931],[-2.15623,-79.97061],[-2.15599,-79.9708],[-2.15557,-79.97107],[-2.15525,-79.97149],[-2.15502,-79.97169],[-2.15418,-79.97186],[-2.15359,-79.97159],[-2.15312,-79.97137],[-2.15283,-79.97122],[-2.15272,-79.97115],[-2.15249,-79.97101],[-2.15212,-79.97083],[-2.15182,-79.97067],[-2.15145,-79.97053],[-2.15057,-79.97032],[-2.14999,-79.9702],[-2.1492,-79.97002],[-2.14833,-79.96979],[-2.1482,-79.96974],[-2.14764,-79.96953],[-2.14747,-79.9695],[-2.14524,-79.9691],[-2.14577,-79.96835],[-2.14635,-79.96856],[-2.14686,-79.96853],[-2.14739,-79.96838],[-2.14695,-79.96875],[-2.1475,-79.9692],[-2.14833,-79.96897],[-2.14853,-79.9684],[-2.14892,-79.96824],[-2.14899,-79.96797],[-2.14908,-79.9673],[-2.14905,-79.9672],[-2.14901,-79.96709],[-2.14885,-79.96707]],[[-2.14887,-79.95901],[-2.14867,-79.95895],[-2.14829,-79.95882],[-2.14806,-79.95877],[-2.14781,-79.95872],[-2.14757,-79.95879],[-2.14738,-79.95891],[-2.14694,-79.95942],[-2.14662,-79.95991],[-2.14614,-79.96034],[-2.14568,-79.96036],[-2.14526,-79.96036],[-2.14499,-79.96041],[-2.14461,-79.96068],[-2.14432,-79.96089],[-2.144,-79.96112],[-2.14382,-79.96126],[-2.14376,-79.96137],[-2.14374,-79.96147],[-2.14378,-79.96159],[-2.14385,-79.9617],[-2.14392,-79.9618],[-2.14398,-79.96188],[-2.14403,-79.96192],[-2.1441,-79.96192],[-2.1442,-79.96187],[-2.14431,-79.96181],[-2.1444,-79.96174],[-2.14451,-79.96165],[-2.14451,-79.96159],[-2.14453,-79.96153],[-2.14455,-79.96149],[-2.14458,-79.96145],[-2.14469,-79.96135],[-2.1448,-79.96133],[-2.1448,-79.96149],[-2.14488,-79.9617],[-2.1449,-79.96175],[-2.14522,-79.96196],[-2.14619,-79.96139],[-2.1464,-79.96128],[-2.1468,-79.9611],[-2.14699,-79.96099],[-2.14733,-79.96078],[-2.14747,-79.96066],[-2.14754,-79.96046],[-2.14793,-79.9602],[-2.14802,-79.96008],[-2.14818,-79.95985],[-2.14834,-79.95966],[-2.14853,-79.95957],[-2.14887,-79.95901]],[[-2.15468,-79.95935],[-2.1541,-79.96008],[-2.15379,-79.96022],[-2.15279,-79.96118],[-2.15282,-79.96148],[-2.15315,-79.96196],[-2.15285,-79.9627],[-2.1528,-79.96335],[-2.15254,-79.9641],[-2.15264,-79.96416],[-2.15314,-79.9637],[-2.15381,-79.96327],[-2.15416,-79.96291],[-2.1551,-79.96295],[-2.15577,-79.96285],[-2.15572,-79.96269],[-2.15551,-79.96277],[-2.15544,-79.96262],[-2.15552,-79.96244],[-2.15574,-79.96258],[-2.15584,-79.96281],[-2.15606,-79.96271],[-2.15584,-79.96225],[-2.15468,-79.95935]],[[-2.15246,-79.96045],[-2.15241,-79.9604],[-2.15248,-79.96018],[-2.15232,-79.95981],[-2.15196,-79.95971],[-2.15151,-79.95997],[-2.15137,-79.95998],[-2.15099,-79.95989],[-2.15047,-79.95996],[-2.15045,-79.95971],[-2.15055,-79.95928],[-2.15083,-79.95887],[-2.15116,-79.95853],[-2.15153,-79.95814],[-2.15182,-79.95844],[-2.15205,-79.95863],[-2.15216,-79.95884],[-2.15236,-79.95889],[-2.15238,-79.95912],[-2.15263,-79.95943],[-2.15285,-79.95963],[-2.15287,-79.95983],[-2.15289,-79.96006],[-2.15246,-79.96045]]];
+
+function fallbackBosques(){
+  PROSPERINA_OSM.forEach(pts=>{
+    const pg=L.polygon(pts,{color:'#8bc34a',weight:2,fillColor:'#8bc34a',fillOpacity:.16});
+    pg.bindPopup('<b>Bosque Protector La Prosperina</b><br>264,86 ha &middot; Campus ESPOL'
+      +'<br><i style="color:rgba(0,0,0,.55)">Contorno real (OpenStreetMap)</i>');
+    pg.bindTooltip('Prosperina',{sticky:true});
+    gBos.addLayer(pg);
+  });
+  const pts=[],R=6371,km=4.4;
+  for(let i=0;i<=72;i++){
+    const a=i/72*2*Math.PI;
+    pts.push([CB.lat+(km/R)*(180/Math.PI)*Math.cos(a),
+              CB.lon+(km/R)*(180/Math.PI)*Math.sin(a)/Math.cos(CB.lat*Math.PI/180)]);
+  }
+  const pg=L.polygon(pts,{color:'#6b8f4e',weight:2,dashArray:'8,6',fillColor:'#6b8f4e',fillOpacity:.10});
+  pg.bindPopup('<b>Bosque Protector Cerro Blanco</b><br>6.078 ha &middot; Km 16 via a la Costa'
+    +'<br><i style="color:#000">Contorno aproximado - pendiente shapefile oficial</i>');
+  pg.bindTooltip('Cerro Blanco (aprox.)',{sticky:true});
+  gBos.addLayer(pg);
+}
+
+/* ---------- ZONAS ---------- */
+function pintarZonas(){
+  gZon.clearLayers(); gExt.clearLayers();
+  SITIOS.forEach(s=>{
+    const col=s.bosque==='Cerro Blanco'?'#e8a33d':'#5b9bd5';
+    const lado=Math.max(s.ancho_m||0,s.alto_m||0), extenso=lado>150;
+    const txt=lado>=1000?(lado/1000).toFixed(1)+' km':Math.round(lado)+' m';
+
+    /* Recuadro de extension: oculto por defecto para no saturar el mapa.
+       Se muestra al apuntar o pulsar el circulo del sitio. */
+    let rect=null;
+    if(extenso){
+      rect=L.rectangle([[s.lat_min,s.lon_min],[s.lat_max,s.lon_max]],
+        {color:col,weight:1.5,dashArray:'6,5',fillColor:col,fillOpacity:.10,interactive:false});
+      rect.bindTooltip(s.sitio+' · '+txt,{permanent:true,direction:'top',className:'zt'});
+    }
+
+    const r=Math.max(9,Math.min(22,Math.sqrt(s.n)*3.2));
+    const m=L.circleMarker([s.lat,s.lon],{radius:r,color:'#fff',weight:2.5,
+      fillColor:col,fillOpacity:.95});
+    m.bindTooltip(String(s.n),{permanent:true,direction:'center',className:'zt'});
+    m.bindPopup('<b>'+s.sitio+'</b><br>'+s.bosque
+      +'<br><b>'+s.n+'</b> especímenes recolectados'
+      +(extenso?'<br><span style="color:#000">Recorrido de '+txt
+        +' — el círculo es el centroide; el recuadro, la extensión de las colectas.</span>':'')
+      +'<br><code>'+s.lat.toFixed(5)+', '+s.lon.toFixed(5)+'</code>');
+    if(rect){
+      const ver=()=>{ if(!gExt.hasLayer(rect)) gExt.addLayer(rect); };
+      const quitar=()=>{ if(!verExt && gExt.hasLayer(rect)) gExt.removeLayer(rect); };
+      m.on('mouseover',ver); m.on('mouseout',quitar);
+      m.on('popupopen',ver);  m.on('popupclose',quitar);
+      if(verExt) ver();
+    }
+    gZon.addLayer(m);
+    SITIO_MK[s.sitio]={m:m,rect:rect,s:s};
+  });
+}
+
+/* Ir a un sitio desde la lista del panel: si es un recorrido se encuadra
+   su extension completa; si es puntual se acerca al punto. */
+function irASitio(nombre){
+  const o=SITIO_MK[nombre];
+  if(!o) return;
+  if(o.rect){
+    if(!gExt.hasLayer(o.rect)) gExt.addLayer(o.rect);
+    map.fitBounds(o.rect.getBounds().pad(0.25),{animate:true,duration:1.1});
+  }else{
+    map.flyTo([o.s.lat,o.s.lon],17,{duration:1.1});
+  }
+  setTimeout(()=>o.m.openPopup(),1150);
+  document.querySelectorAll('#sitios .stat').forEach(el=>
+    el.classList.toggle('on', el.dataset.sitio===nombre));
+}
+
+/* ---------- ESPECIES ---------- */
+function icono(e){
+  const f=e.icono?'./iconos/'+e.icono:'';
+  const cls='wrap'+(e.icono_circular?' circ':'')+(sel===e.id?' sel':'');
+  return L.divIcon({className:'mk',iconSize:[TAM,TAM],iconAnchor:[Math.round(TAM/2),TAM],
+    popupAnchor:[0,-(TAM+20)],
+    html:'<div class="'+cls+'"><img src="'+(f||'./iconos/ic_sinfoto.png')
+         +'" alt="'+e.especie+'" draggable="false"/></div>'});
+}
+function pintarEspecies(){
+  gEsp.clearLayers(); gGuia.clearLayers();
+  Object.keys(MARCA).forEach(k=>delete MARCA[k]);
+  PUNTOS.length=0;
+  ESP.forEach(e=>{
+    (e.registros||[]).forEach((r,k)=>{
+      if(r.lat==null||r.lon==null) return;
+      const m=L.marker([r.lat,r.lon],{icon:icono(e)});
+      MARCA[e.id+'_'+k]=m;
+      PUNTOS.push({m:m,r:r,e:e});
+      m.bindPopup('<i>'+e.especie+'</i>'
+        +'<br><b>'+r.codigo+'</b>'+(r.conf!=='exacta'?' <span style="color:#000">('+r.conf+')</span>':'')
+        +(r.taxon_base&&r.taxon_base!==e.especie?'<br><span style="color:rgba(0,0,0,.55)">en base: '+r.taxon_base+'</span>':'')
+        +'<br>'+r.lugar+(r.fecha?' · '+r.fecha:'')
+        +(r.altitud?'<br>'+r.altitud+' msnm':'')
+        +((r.pileo||r.estipite||r.general)?'<br>'
+          +[r.pileo?'píleo '+r.pileo:'',r.estipite?'estípite '+r.estipite:'',
+             r.general?'general '+r.general:''].filter(Boolean).join(' · '):'')
+        +((r.temp||r.humedad)?'<br>'+[r.temp?r.temp+' °C':'',
+             r.humedad?Math.round(r.humedad*100)+' % HR':''].filter(Boolean).join(' · '):'')
+        +(r.sustrato?'<br><span style="font-size:.9em">'+r.sustrato+'</span>':'')
+        +'<br><code>'+r.lat.toFixed(6)+', '+r.lon.toFixed(6)+'</code>');
+      /* apilamiento: el marcador apuntado o con popup abierto pasa al frente.
+         Hace falta setZIndexOffset porque Leaflet ordena por latitud y el
+         :hover de CSS no alcanza si otro icono esta encima. */
+      m.on('mouseover',()=>m.setZIndexOffset(9000));
+      m.on('mouseout',()=>{ if(!m.isPopupOpen||!m.isPopupOpen()) m.setZIndexOffset(0); });
+      m.on('popupopen',()=>{
+        m.setZIndexOffset(12000);
+        const w=m.getElement&&m.getElement()&&m.getElement().querySelector('.wrap');
+        if(w) w.classList.add('abierto');
+      });
+      m.on('popupclose',()=>{
+        m.setZIndexOffset(0);
+        const w=m.getElement&&m.getElement()&&m.getElement().querySelector('.wrap');
+        if(w) w.classList.remove('abierto');
+      });
+      m.on('click',()=>abrirFicha(e.id));
+      gEsp.addLayer(m);
+    });
+  });
+  aplicarTam();
+  desplegar();
+  render(); progreso();
+}
+
+/* ══ DESPLIEGUE EN ABANICO ═══════════════════════════════════════════
+   Las coordenadas de campo estan redondeadas a segundos enteros (~30 m),
+   asi que varios especimenes del mismo punto GPS caen exactamente encima.
+   Se separan en pantalla (offset en pixeles, constante a cualquier zoom)
+   y se dibuja una linea al punto real. Las coordenadas de los datos y de
+   las exportaciones NO se modifican.
+   ═══════════════════════════════════════════════════════════════════ */
+function desplegar(){
+  if(typeof _enZoom!=='undefined' && _enZoom) return;
+  gGuia.clearLayers();
+  const grupos={};
+  PUNTOS.forEach(o=>{
+    const k=o.r.lat.toFixed(5)+','+o.r.lon.toFixed(5);
+    (grupos[k]=grupos[k]||[]).push(o);
+  });
+  Object.keys(grupos).forEach(k=>{
+    const g=grupos[k];
+    if(g.length===1){ g[0].m.setLatLng([g[0].r.lat,g[0].r.lon]); return; }
+    const base=map.latLngToLayerPoint([g[0].r.lat,g[0].r.lon]);
+    const R=Math.round(TAM*0.55)+g.length*4;
+    g.forEach((o,i)=>{
+      const a=(i/g.length)*2*Math.PI - Math.PI/2;
+      const p=L.point(base.x+R*Math.cos(a), base.y+R*Math.sin(a));
+      const ll=map.layerPointToLatLng(p);
+      o.m.setLatLng(ll);
+      gGuia.addLayer(L.polyline([[o.r.lat,o.r.lon],ll],
+        {color:'#fff',weight:1,opacity:.5,interactive:false}));
+    });
+    gGuia.addLayer(L.circleMarker([g[0].r.lat,g[0].r.lon],
+      {radius:2.5,color:'#fff',weight:1,fillColor:'#fff',fillOpacity:.9,interactive:false}));
+  });
+}
+/* Durante el zoom los marcadores vuelven a su coordenada real para que
+   escalen junto con el mapa; el abanico se rehace al terminar. Si no,
+   quedan en offsets calculados para el zoom anterior y se ven derivar. */
+map.on('zoomstart',()=>{
+  _enZoom=true;
+  clearTimeout(_finZoom);
+  gGuia.clearLayers();
+  PUNTOS.forEach(o=>o.m.setLatLng([o.r.lat,o.r.lon]));
+});
+map.on('zoomend',()=>{ _enZoom=false; aplicarTam(); desplegar(); });
+
+/* ---------- LISTA ---------- */
+/* ══ BUSQUEDA ═══════════════════════════════════════════════════════
+   Indexa taxonomia, comestibilidad, descripcion, sustrato, potencial
+   biotecnologico, sitios y codigos de muestra.
+   La comestibilidad se guarda como token unico para que "comestible"
+   no traiga tambien los "no comestible".
+   ═══════════════════════════════════════════════════════════════════ */
+function sinTildes(s){
+  return String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+}
+function indice(e){
+  const t=[e.especie,e.genero,e.familia,e.orden,e.clase,e.filo,
+           e.descripcion,e.sustrato,e.biotec,e.medidas,
+           (e.creditos||[]).join(' ')];
+  /* comestibilidad como token inequivoco */
+  const c=sinTildes(e.comestibilidad);
+  if(c==='comestible') t.push('comestible edible');
+  else if(c==='no comestible') t.push('nocomestible toxico noapto');
+  else if(c.startsWith('sin interes')) t.push('sininteres gastronomico nulo');
+  if(e.comest_verificar) t.push('porverificar');
+  if(!e.comestibilidad) t.push('sindato');
+  /* registros: sitio, bosque, sustrato, codigo, fecha */
+  (e.registros||[]).forEach(r=>t.push(r.codigo,r.lugar,r.bosque,r.sustrato,r.fecha,r.taxon_base));
+  /* color (de los pixeles del recorte + lo que dice la descripcion) y
+     sustrato normalizado a categorias */
+  (e.colores||[]).forEach(c=>t.push(c));
+  (e.sustratos||[]).forEach(s=>t.push(s));
+  if(!e.n_geo) t.push('sinregistro sinubicar');
+  else t.push('ubicada georreferenciada');
+  if(!(e.fotos||[]).length) t.push('sinfotos');
+  return sinTildes(t.filter(Boolean).join(' '));
+}
+/* perezoso: ESP se asigna al final del script, asi que no se puede
+   indexar aqui — se calcula en la primera busqueda */
+function ix(e){ return e._ix || (e._ix=indice(e)); }
+
+/* frases que se colapsan a un token antes de partir la consulta */
+const FRASES=[
+  [/\bno\s+comestibles?\b/g,'nocomestible'], [/\btoxicos?\b/g,'nocomestible'],
+  [/\bsin\s+interes(\s+gastronomico)?\b/g,'sininteres'],
+  [/\bcomestibles?\b/g,'comestible'], [/\bedibles?\b/g,'comestible'],
+  [/\bsin\s+fotos?\b/g,'sinfotos'], [/\bsin\s+registros?\b/g,'sinregistro'],
+  [/\bsin\s+ubicar\b/g,'sinubicar'], [/\bpor\s+verificar\b/g,'porverificar'],
+  /* color: variantes -> familia */
+  [/\b(rosas?|rosados?|rosadas?|pinks?|rositas?)\b/g,'rosado'],
+  [/\b(rojos?|rojas?|rojizos?|rojizas?|escarlatas?|carmesi(es)?|sanguineos?|reds?)\b/g,'rojo'],
+  [/\b(naranjas?|anaranjados?|anaranjadas?|oranges?)\b/g,'naranja'],
+  [/\b(amarillos?|amarillas?|ocres?|dorados?|doradas?|yellows?)\b/g,'amarillo'],
+  [/\b(blancos?|blancas?|blanquecinos?|blanquecinas?|cremas?|whites?)\b/g,'blanco'],
+  [/\b(negros?|negras?|carbonosos?|carbonosas?|blacks?)\b/g,'negro'],
+  [/\b(grises?|grisaceos?|grisaceas?|grays?|greys?)\b/g,'gris'],
+  [/\b(marrones?|marrons?|pardos?|pardas?|cafes?|canela|caobas?|beiges?|browns?)\b/g,'marron'],
+  [/\b(violetas?|violaceos?|violaceas?|lilas?|purpuras?|morados?|moradas?)\b/g,'violeta'],
+  [/\b(verdes?|greens?)\b/g,'verde'],
+  /* sustrato: variantes -> categoria */
+  [/\b(troncos?|troncones?|logs?)\b/g,'tronco'],
+  [/\b(ramas?|ramitas?|branch(es)?)\b/g,'rama'],
+  [/\b(maderas?|lenosos?|lenosas?|lignicolas?|xilofagos?|wood)\b/g,'madera'],
+  [/\b(suelos?|terricolas?|tierra|soil)\b/g,'suelo'],
+  [/\b(hojarascas?|hojas?\s+secas?|litter)\b/g,'hojarasca'],
+  [/\b(canas?|bambu(es)?)\b/g,'cana'],
+  [/\b(tocones?|tocons?|stumps?)\b/g,'tocon'],
+  [/\b(arboles?\s+vivos?|arbol\s+vivo)\b/g,'arbol'],
+];
+function coincide(e,q){
+  let s=sinTildes(q).trim();
+  if(!s) return true;
+  FRASES.forEach(([re,tok])=>{ s=s.replace(re,tok); });
+  return s.split(/\s+/).filter(Boolean).every(t=>{
+    const raiz=t.replace(/(es|s)$/,'');                 /* plural -> singular */
+    const pat=(raiz.length>=3?raiz:t).replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+    /* terminos cortos exigen palabra completa: si no, "cana" engancharia
+       "canela" y "rama" engancharia "ramificado" */
+    const re=pat.length>=5 ? new RegExp('\\b'+pat)
+                           : new RegExp('\\b'+pat+'(es|s)?\\b');
+    return re.test(ix(e));
+  });
+}
+
+function render(){
+  const q=document.getElementById('q').value;
+  const cont=document.getElementById('lista');
+  const vis=ESP.filter(e=>coincide(e,q));
+  cont.innerHTML=vis.map(e=>{
+    const f=e.fotos&&e.fotos[0]?`./fotos_hongos/${e.fotos[0]}`:'';
+    const ub=e.n_geo>0;
+    return `<div class="sp ${sel===e.id?'sel':''}" data-id="${e.id}">
+      <div class="th" style="background-image:url('${f}')"></div>
+      <div style="flex:1;min-width:0">
+        <div class="nm">${e.especie}</div>
+        <div class="mt">${e.familia} · ${e.fotos.length} foto${e.fotos.length===1?'':'s'}
+          <span class="pin ${ub?'si':'no'}">${ub? e.n_geo+' punto'+(e.n_geo===1?'':'s') : 'sin registro'}</span></div>
+      </div></div>`;
+  }).join('')||'<div style="padding:1.2rem;font-size:14px;letter-spacing:-0.034em;color:rgba(0,0,0,.55)">Sin resultados.</div>';
+  cont.querySelectorAll('.sp').forEach(el=>
+    el.onclick=()=>abrirFicha(+el.dataset.id));
+}
+
+/* ---------- FICHA ---------- */
+function abrirFicha(id){
+  sel=id; const e=ESP.find(x=>x.id===id); if(!e) return;
+  /* resaltar el marcador activo sin repintar la capa */
+  Object.keys(MARCA).forEach(k=>{
+    const m=MARCA[k], esta=parseInt(k,10)===id;
+    const el=m.getElement&&m.getElement();
+    const w=el&&el.querySelector('.wrap');
+    if(w) w.classList.toggle('sel', esta);
+    if(m.setZIndexOffset) m.setZIndexOffset(esta?6000:0);
+  });
+  document.querySelector('#tabs button[data-p="lista"]').click();
+  const gal=e.fotos.map((f,k)=>`<img src="./fotos_hongos/${f}" alt="${e.especie}" onclick="lightbox(${e.id},${k})"/>`).join('');
+  const ub=e.lat!=null;
+  document.getElementById('lista').innerHTML=`<div id="ficha">
+    <button class="cerrar" onclick="render()">✕</button>
+    <h2>${e.especie}</h2>
+    <div class="tx">${e.filo} · ${e.clase} · ${e.orden} · ${e.familia}</div>
+    ${gal?`<div class="gal">${gal}</div>`:''}
+    <div class="chips">
+      ${e.comestibilidad?`<span class="chip">${e.comestibilidad}</span>`:''}
+      ${e.comest_verificar?`<span class="chip" style="border-color:var(--carbon)">comestibilidad por verificar</span>`:''}
+      ${e.medidas?`<span class="chip">${e.medidas}</span>`:''}
+      <span class="chip">datos ${e.score}/7</span>
+    </div>
+    ${e.nota?`<div class="note" style="margin-top:.6rem">${e.nota}</div>`:''}
+    ${e.descripcion?`<div class="lbl">Descripción macroscópica</div><div class="val">${e.descripcion}</div>`:''}
+    ${e.sustrato?`<div class="lbl">Sustrato y hábitat</div><div class="val">${e.sustrato}</div>`:''}
+    ${e.biotec?`<div class="lbl">Potencial biotecnológico</div><div class="val">${e.biotec}</div>`:''}
+    ${(e.creditos&&e.creditos.length)?`<div class="lbl">Créditos</div>
+      <div class="cred">${(Array.isArray(e.creditos)?e.creditos:[e.creditos])
+        .map(c=>`<div class="cr">${c}</div>`).join('')}</div>`:''}
+    <div id="geo">
+      <div class="lbl" style="margin-top:0">Registros de campo${e.n_reg?` · ${e.n_reg}`:''}</div>
+      ${e.n_reg? (e.registros||[]).map((r,k)=>`
+        <div class="reg${r.lat!=null?' ok':''}" ${r.lat!=null?`onclick="volarReg(${e.id},${k})"`:''}>
+          <div class="rc"><b>${r.codigo}</b>
+            ${r.conf!=='exacta'?`<span class="cf">${r.conf}</span>`:''}
+            ${r.lat!=null?'':'<span class="cf">sin coord.</span>'}</div>
+          <div class="rd">${r.lugar||'—'}${r.fecha?` · ${r.fecha}`:''}${r.altitud?` · ${r.altitud} msnm`:''}</div>
+          ${(r.pileo||r.estipite||r.general)?`<div class="med">
+            ${r.pileo?`<span><b>Píleo</b> ${r.pileo}</span>`:''}
+            ${r.estipite?`<span><b>Estípite</b> ${r.estipite}</span>`:''}
+            ${r.general?`<span><b>General</b> ${r.general}</span>`:''}
+          </div>`:''}
+          ${(r.temp||r.humedad)?`<div class="rd">${r.temp?`${r.temp} °C`:''}${r.temp&&r.humedad?' · ':''}${r.humedad?`${Math.round(r.humedad*100)} % HR`:''}</div>`:''}
+          ${r.taxon_base&&r.taxon_base!==e.especie?`<div class="rd" style="color:rgba(0,0,0,.55)">en base: ${r.taxon_base}</div>`:''}
+          ${r.lat!=null?`<div class="co">${r.lat.toFixed(6)}, ${r.lon.toFixed(6)}</div>`:''}
+        </div>`).join('')
+      : `<div class="rd" style="padding:.3rem 0">Sin registros en la base de campo.</div>`}
+      <div style="display:flex;gap:.35rem;flex-wrap:wrap;margin-top:.6rem">
+        ${e.n_geo?`<button class="btn p" onclick="volarReg(${e.id},${(e.registros||[]).findIndex(r=>r.lat!=null)})">Ver en el mapa</button>`:''}
+        ${e.n_geo>1?`<button class="btn s" onclick="verTodos(${e.id})">Ver los ${e.n_geo}</button>`:''}
+        ${!e.n_geo?`<button class="btn s" onclick="ubicar(${e.id})">Ubicar manualmente</button>`:''}
+      </div>
+    </div></div>`;
+}
+/* ══ VISOR ══════════════════════════════════════════════════════════
+   Recorre las fotos de una misma especie con flechas, teclado o
+   deslizando. Se desactivan los extremos en vez de dar la vuelta.
+   ═══════════════════════════════════════════════════════════════════ */
+let lbFotos=[], lbIdx=0, lbNombre='';
+function lightbox(id,k){
+  const e=ESP.find(x=>x.id===id); if(!e||!e.fotos.length) return;
+  lbFotos=e.fotos; lbNombre=e.especie; lbIdx=k||0;
+  pintarLB();
+  document.getElementById('lb').classList.add('on');
+}
+function pintarLB(){
+  document.getElementById('lbi').src='./fotos_hongos/'+lbFotos[lbIdx];
+  document.getElementById('lbi').alt=lbNombre;
+  document.getElementById('lbNom').textContent=lbNombre;
+  document.getElementById('lbCnt').textContent=(lbIdx+1)+' / '+lbFotos.length;
+  const uno=lbFotos.length<2;
+  const p=document.getElementById('lbPrev'), n=document.getElementById('lbNext');
+  p.disabled=uno||lbIdx===0;  p.style.display=uno?'none':'flex';
+  n.disabled=uno||lbIdx===lbFotos.length-1; n.style.display=uno?'none':'flex';
+}
+function lbMover(d){
+  const i=lbIdx+d;
+  if(i<0||i>=lbFotos.length) return;
+  lbIdx=i; pintarLB();
+}
+document.getElementById('lbPrev').onclick=ev=>{ ev.stopPropagation(); lbMover(-1); };
+document.getElementById('lbNext').onclick=ev=>{ ev.stopPropagation(); lbMover(1); };
+document.getElementById('lbi').onclick=ev=>ev.stopPropagation();
+document.addEventListener('keydown',ev=>{
+  const lb=document.getElementById('lb');
+  if(!lb.classList.contains('on')) return;
+  if(ev.key==='ArrowLeft')  lbMover(-1);
+  if(ev.key==='ArrowRight') lbMover(1);
+  /* Escape cierra el visor y se detiene ahi: no debe cerrar la ficha
+     que quedo abierta detras */
+  if(ev.key==='Escape'){ lb.classList.remove('on'); ev.stopPropagation(); }
+},true);
+/* deslizar en tactil */
+let lbX=null;
+document.getElementById('lb').addEventListener('touchstart',ev=>{lbX=ev.touches[0].clientX},{passive:true});
+document.getElementById('lb').addEventListener('touchend',ev=>{
+  if(lbX==null) return;
+  const dx=ev.changedTouches[0].clientX-lbX; lbX=null;
+  if(Math.abs(dx)>45) lbMover(dx<0?1:-1);
+},{passive:true});
+document.getElementById('lb').onclick=e=>e.currentTarget.classList.remove('on');
+
+function ubicar(id){
+  sel=id; modo=true;
+  document.getElementById('modoSp').textContent=ESP.find(e=>e.id===id).especie;
+  document.getElementById('modo').classList.add('on');
+  map.getContainer().style.cursor='crosshair';
+}
+function volar(id){const e=ESP.find(x=>x.id===id); if(e.lat!=null) map.flyTo([e.lat,e.lon],17,{duration:1.1})}
+function volarReg(id,k){
+  const e=ESP.find(x=>x.id===id), r=e&&(e.registros||[])[k];
+  if(!r||r.lat==null) return;
+  map.flyTo([r.lat,r.lon],18,{duration:1.1});
+  const m=MARCA[id+'_'+k]; if(m&&m.openPopup) setTimeout(()=>m.openPopup(),950);
+}
+function verTodos(id){
+  const e=ESP.find(x=>x.id===id);
+  const pts=(e.registros||[]).filter(r=>r.lat!=null).map(r=>[r.lat,r.lon]);
+  if(pts.length>1) map.fitBounds(L.latLngBounds(pts).pad(.35),{animate:true,duration:1.1});
+  else if(pts.length) map.flyTo(pts[0],17);
+}
+function borrarCoord(id){
+  const e=ESP.find(x=>x.id===id);
+  e.lat=e.lon=null; e.zona=''; e.bosque='';
+  guardar(); pintarEspecies(); abrirFicha(id);
+}
+
+/* sitio de muestreo mas cercano (para asignacion manual) */
+function zonaCercana(lat,lon){
+  let best=null,d0=1e9;
+  SITIOS.forEach(s=>{const d=Math.hypot(lat-s.lat,lon-s.lon); if(d<d0){d0=d;best=s}});
+  return d0<0.05?{z:best.sitio,bosque:best.bosque}:null;
+}
+
+map.on('click',ev=>{
+  if(!modo||sel==null) return;
+  const e=ESP.find(x=>x.id===sel);
+  e.lat=ev.latlng.lat; e.lon=ev.latlng.lng;
+  const z=zonaCercana(e.lat,e.lon);
+  if(z){e.zona=z.z; e.bosque=z.bosque}
+  modo=false;
+  document.getElementById('modo').classList.remove('on');
+  map.getContainer().style.cursor='';
+  guardar(); pintarEspecies(); abrirFicha(e.id);
+});
+document.addEventListener('keydown',ev=>{
+  if(ev.key==='Escape'&&modo){modo=false;
+    document.getElementById('modo').classList.remove('on');
+    map.getContainer().style.cursor=''}
+});
+
+/* HUD de coordenadas + clic derecho para copiar */
+map.on('mousemove',e=>{
+  document.getElementById('hud').textContent=
+    `${e.latlng.lat.toFixed(6)}, ${e.latlng.lng.toFixed(6)}  ·  zoom ${map.getZoom()}`;
+});
+map.on('contextmenu',e=>{
+  const t=`${e.latlng.lat.toFixed(6)}, ${e.latlng.lng.toFixed(6)}`;
+  navigator.clipboard?.writeText(t);
+  L.popup().setLatLng(e.latlng).setContent(`<b>Coordenadas copiadas</b><br><code>${t}</code>`).openOn(map);
+});
+
+/* ---------- MEDIR ---------- */
+document.getElementById('bMed').onclick=function(){
+  midiendo=!midiendo; medPts=[]; gMed.clearLayers();
+  this.textContent=midiendo?'Terminar':'Medir';
+  this.className=midiendo?'btn w':'btn s';
+  map.getContainer().style.cursor=midiendo?'crosshair':'';
+};
+map.on('click',e=>{
+  if(!midiendo) return;
+  medPts.push(e.latlng);
+  L.circleMarker(e.latlng,{radius:4,color:'#ffd54f',fillOpacity:1}).addTo(gMed);
+  if(medPts.length>1){
+    L.polyline(medPts,{color:'#ffd54f',weight:3,dashArray:'6,4'}).addTo(gMed);
+    let d=0; for(let i=1;i<medPts.length;i++) d+=medPts[i-1].distanceTo(medPts[i]);
+    L.marker(medPts[medPts.length-1],{icon:L.divIcon({className:'mk',
+      html:`<div style="background:#12140f;color:#ffd54f;padding:2px 7px;border-radius:4px;
+      font:400 12px 'Roboto',ui-sans-serif,system-ui,-apple-system,sans-serif;letter-spacing:-0.04em;white-space:nowrap;border:1px solid var(--carbon)">
+      ${d<1000?d.toFixed(0)+' m':(d/1000).toFixed(2)+' km'}</div>`,iconAnchor:[-8,8]})}).addTo(gMed);
+  }
+});
+
+/* ---------- PERSISTENCIA ---------- */
+function guardar(){
+  try{
+    const d={}; ESP.forEach(e=>{ if(e.lat!=null)
+      d[e.id]={lat:e.lat,lon:e.lon,zona:e.zona,bosque:e.bosque,altitud:e.altitud,fecha:e.fecha,codigo:e.codigo}; });
+    localStorage.setItem(LS,JSON.stringify(d));
+  }catch(err){}
+}
+function restaurar(){
+  try{
+    const d=JSON.parse(localStorage.getItem(LS)||'{}');
+    ESP.forEach(e=>{ if(d[e.id]) Object.assign(e,d[e.id]); });
+  }catch(err){}
+}
+
+/* ---------- PROGRESO ---------- */
+function progreso(){
+  const sc=document.getElementById('sitios');
+  if(!sc) return;
+  sc.innerHTML=SITIOS.map(s=>
+    '<div class="stat cl" data-sitio="'+s.sitio.replace(/"/g,'&quot;')+'">'
+    +'<span><span class="sw" style="display:inline-block;background:'
+    +(s.bosque==='Cerro Blanco'?'#e8a33d':'#5b9bd5')+'"></span> '+s.sitio+'</span>'
+    +'<b>'+s.n+'</b></div>'
+  ).join('');
+  sc.querySelectorAll('.stat.cl').forEach(el=>
+    el.onclick=()=>irASitio(el.dataset.sitio));
+}
+
+/* ---------- UI ---------- */
+document.querySelectorAll('#tabs button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('#tabs button').forEach(x=>x.classList.remove('on'));
+  document.querySelectorAll('.pane').forEach(x=>x.classList.remove('on'));
+  b.classList.add('on');
+  document.getElementById('p-'+b.dataset.p).classList.add('on');
+});
+document.getElementById('q').oninput=render;
+document.querySelectorAll('input[name=base]').forEach(r=>r.onchange=()=>{
+  map.removeLayer(baseActual); map.removeLayer(etiquetas);
+  if(r.value==='hib'){ baseActual=bases.sat; baseActual.addTo(map); etiquetas.addTo(map); }
+  else { baseActual=bases[r.value]; baseActual.addTo(map); }
+});
+const caps={cBos:gBos,cSen:gSen,cZon:gZon,cEsp:gEsp};
+Object.entries(caps).forEach(([id,g])=>
+  document.getElementById(id).onchange=e=>{
+    e.target.checked?map.addLayer(g):map.removeLayer(g);
+    if(id==='cEsp') e.target.checked?map.addLayer(gGuia):map.removeLayer(gGuia);
+  });
+document.getElementById('cExt').onchange=e=>{ verExt=e.target.checked; pintarZonas(); };
+/* Salto entre areas: a zoom 15 la vista cubre ~8 km y los bosques distan
+   13,7 km, asi que no caben juntos. */
+document.querySelectorAll('#salto button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('#salto button').forEach(x=>x.classList.remove('on'));
+  b.classList.add('on');
+  const d=b.dataset.b;
+  if(d==='PR')      map.flyTo([PR.lat,PR.lon],15,{duration:1.2});
+  else if(d==='CB') map.flyTo([CB.lat,CB.lon],15,{duration:1.2});
+  else {
+    const p=[]; ESP.forEach(e=>(e.registros||[]).forEach(r=>{ if(r.lat!=null) p.push([r.lat,r.lon]); }));
+    if(p.length) map.fitBounds(L.latLngBounds(p).pad(.12),{animate:true,duration:1.2});
+  }
+});
+function marcarSalto(){
+  const c=map.getCenter();
+  const dPR=Math.hypot(c.lat-PR.lat,c.lng-PR.lon), dCB=Math.hypot(c.lat-CB.lat,c.lng-CB.lon);
+  const cual = map.getZoom()<13 ? 'TODO' : (dPR<dCB?'PR':'CB');
+  document.querySelectorAll('#salto button').forEach(b=>
+    b.classList.toggle('on', b.dataset.b===cual));
+}
+map.on('moveend',marcarSalto);
+document.querySelectorAll('input[name=gesto]').forEach(r=>
+  r.onchange=()=>{ gestoDosDedos = r.value==='trackpad'; });
+document.getElementById('bOSM').onclick=cargarOSM;
+
+/* ---------- ARRANQUE ---------- */
+ESP=[{"id":1,"especie":"Trogia cantharelloides","genero":"Trogia","filo":"Basidiomycota","familia":"Marasmiaceae","orden":"Agaricales","clase":"Agaricomycetes","comestibilidad":"Comestible","medidas":"1cm, 3.5cm","descripcion":"Sombrero con forma umbilicada a deprimida en el centro, margen entero. Superficie de color beige a marrón claro.Himenóforo formado por láminas bien separadas, decurrentes, de color lila a violáceo. Y estípite delgado, cilíndrico, de color beige con tonalidades violáceas.","sustrato":"Se desarrolla sobre madera en descomposición, generalmente en troncos o ramas caídas en estado avanzado de degradación. Presente en bosques húmedos tropicales, en ambientes sombreados con alta humedad. Crece de forma dispersa o en pequeños grupos.","biotec":"Presenta compuestos bioactivos, como polifenoles y flavonoides, además de potencial antimicrobiano, lo que le confiere interés para la obtención de compuestos con posibles aplicaciones biotecnológicas y farmacológicas.","creditos":["Fotografías por: Paola Montero Hidalgo"],"fotos":["01_trogia_cantharelloides_1.png","01_trogia_cantharelloides_2.png","01_trogia_cantharelloides_3.png","01_trogia_cantharelloides_4.jpg","01_trogia_cantharelloides_5.jpg"],"score":7,"lat":-2.136111,"lon":-80.084167,"zona":"Cerro Blanco: Ruta Caseta Jaguar","bosque":"Cerro Blanco","altitud":null,"fecha":"","codigo":"","icono":"ic_01.png","registros":[{"codigo":"CC-235","conf":"exacta","taxon_base":"Trogia cantharelloides","lat":-2.136111,"lon":-80.084167,"lugar":"Cerro Blanco: Ruta Caseta Jaguar","zona":"E","bosque":"Cerro Blanco","fecha":"2026-03-25","altitud":380.0,"sustrato":"Tronco caído","pileo":"1 cm","estipite":"2.5 cm","general":"3.5 cm","temp":26.0,"humedad":0.78}],"n_reg":1,"n_geo":1,"comest_fuente":"borrador del catálogo","colores":["marron","naranja","violeta"],"sustratos":["lenoso","lignicola","madera","rama","tronco"]},{"id":11,"especie":"Cyathus striatus","genero":"Cyathus","filo":"Basidiomycota","familia":"Nidulariaceae","orden":"Agaricales","clase":"Agaricomycetes","comestibilidad":"","medidas":"5.3cm","descripcion":"Cuerpos fructíferos pequeños, en forma de nido, de color pardo grisáceo, con el interior cubierto por una capa de pequeñas estructuras lenticulares llamadas peridiolos, donde se encuentran las esporas. La superficie externa es finamente tomentosa y se torna más oscura con la madurez.","sustrato":"Especie saprótrofa, que crece sobre restos vegetales en descomposición: madera muerta, ramitas, hojarasca y corteza triturada. Común en bosques húmedos templados y tropicales, así como en áreas con acumulación de detritos leñosos.","biotec":"Producción de metabolitos secundarios bioactivos (estriatinas y cyathinas, diterpenoides) con actividad antimicrobiana y antitumoral reportada in vitro.","creditos":["Fotografías por: Paola Montero"],"fotos":["11_cyathus_striatus_1.png","11_cyathus_striatus_2.png","11_cyathus_striatus_3.png","11_cyathus_striatus_4.jpg","11_cyathus_striatus_5.jpg"],"score":6,"lat":-2.150444,"lon":-79.965861,"zona":"Albarrada Martín","bosque":"Prosperina","altitud":null,"fecha":"","codigo":"","icono":"ic_11.png","registros":[{"codigo":"CC-282","conf":"exacta","taxon_base":"Cyathus striatus","lat":-2.150444,"lon":-79.965861,"lugar":"Albarrada Martín","zona":"","bosque":"Prosperina","fecha":"2026-05-08","altitud":null,"sustrato":"","pileo":null,"estipite":null,"general":null,"temp":null,"humedad":null}],"n_reg":1,"n_geo":1,"comest_verificar":["No comestible","Sin interés gastronómico"],"colores":["gris","marron","negro"],"sustratos":["hojarasca","lenoso","lignicola","madera","suelo","terricola"]},{"id":10,"especie":"Hexagonia tenuis","genero":"Hexagonia","filo":"Basidiomycota","familia":"Polyporaceae","orden":"Polyporales","clase":"Agaricomycetes","comestibilidad":"No comestible","medidas":"5.3cm","descripcion":"Basidiomas sin pie, de forma flabeliforme o semicircular y consistencia coriácea. El píleo presenta superficie zonada concéntricamente, con tonalidades marrón claro, canela, gris-marrón u ocre, y margen delgado y agudo. El himenóforo es poroide, con poros grandes, angulares a hexagonales, de color blanco-grisáceo a crema o marrón amarillento.","sustrato":"Especie lignícola y saprobia que crece sobre troncos, ramas y tocones de madera muerta de angiospermas, donde participa en la descomposición de la madera y ocasiona pudrición blanca. Se desarrolla principalmente en ambientes tropicales y subtropicales.","biotec":"Su micelio puede utilizarse en la elaboración de biomateriales a partir de sustratos lignocelulósicos, con potencial para aplicaciones en embalaje, aislamiento y construcción, constituyendo una alternativa biodegradable a materiales sintéticos.","creditos":["Fotografías por: Paola Montero"],"fotos":["10_hexagonia_tenuis_1.png","10_hexagonia_tenuis_2.png","10_hexagonia_tenuis_3.jpg","10_hexagonia_tenuis_4.jpg"],"score":7,"lat":-2.136111,"lon":-80.090278,"zona":"Cerro Blanco: Ruta Caseta Jaguar","bosque":"Cerro Blanco","altitud":null,"fecha":"","codigo":"","icono":"ic_10.png","registros":[{"codigo":"CC-135","conf":"exacta","taxon_base":"Hexagonia tenuis","lat":-2.136111,"lon":-80.090278,"lugar":"Cerro Blanco: Ruta Caseta Jaguar","zona":"E","bosque":"Cerro Blanco","fecha":"2026-03-04","altitud":370.0,"sustrato":"Rama caída","pileo":null,"estipite":null,"general":"2 cm","temp":25.0,"humedad":0.94}],"n_reg":1,"n_geo":1,"comest_fuente":"borrador del catálogo","colores":["amarillo","blanco","gris","marron"],"sustratos":["lenoso","lignicola","madera","rama","tocon","tronco"]},{"id":24,"especie":"Phillipsia domingensis","genero":"Phillipsia","filo":"Ascomycota","familia":"Sarcoscyphaceae","orden":"Pezizales","clase":"Pezizomycetes","comestibilidad":"Comestible","medidas":"","descripcion":"Apotecios discoidales a cupuliformes, regularmente con margen entero y ondulado. Himenio liso, de color rosado intenso, mientras que la superficie externa es más pálida, de tonos blanquecinos. Consistencia coriácea y firme.","sustrato":"Especie saprótrofa y lignícola, asociada a madera muerta en descomposición, principalmente en ambientes tropicales húmedos.","biotec":"Presenta una elevada capacidad antioxidante, relacionada con la presencia de compuestos bioactivos capaces de neutralizar radicales libres. Además, mostró actividad antihelmíntica y cierto efecto antifúngico en estudios experimentales. Estas propiedades, junto con su contenido nutricional, respaldan su potencial como fuente de compuestos bioactivos y alimento funcional.","creditos":["Fotografías por: Adriana Suárez & Paola Montero Hidalgo"],"fotos":["24_phillipsia_domingensis_1.png","24_phillipsia_domingensis_2.png","24_phillipsia_domingensis_3.jpg","24_phillipsia_domingensis_4.jpeg"],"score":6,"lat":-2.138333,"lon":-80.088056,"zona":"Cerro Blanco: Ruta Caseta Jaguar","bosque":"Cerro Blanco","altitud":null,"fecha":"","codigo":"","icono":"ic_24.png","registros":[{"codigo":"CC-156","conf":"exacta","taxon_base":"Phillipsia domingensis","lat":-2.138333,"lon":-80.088056,"lugar":"Cerro Blanco: Ruta Caseta Jaguar","zona":"E","bosque":"Cerro Blanco","fecha":"2026-03-04","altitud":399.0,"sustrato":"Rama caída","pileo":null,"estipite":null,"general":"4.2 cm","temp":25.0,"humedad":0.94}],"n_reg":1,"n_geo":1,"comest_fuente":"borrador del catálogo","colores":["blanco","rosado"],"sustratos":["lenoso","lignicola","madera","rama"]},{"id":18,"especie":"Pycnoporus sanguineus","genero":"Pycnoporus","filo":"Basidiomycota","familia":"Polyporaceae","orden":"Polyporales","clase":"Agaricomycetes","comestibilidad":"","medidas":"3cm","descripcion":"Basidiomas sésiles, de forma semicircular o flabeliforme. El píleo es delgado, plano, con superficie finamente aterciopelada a casi lisa y marcada por zonas concéntricas. Presenta una coloración rojo-anaranjada intensa, el himenóforo es poroide, con poros pequeños y circulares, de color similar al píleo o ligeramente más claro. La consistencia es dura, coriácea y tenaz, especialmente al madurar.","sustrato":"Especie lignícola y saprobia que crece sobre madera muerta de angiospermas, principalmente en troncos, ramas y tocones en distintos grados de descomposición, donde ocasiona pudrición blanca. Presenta una amplia distribución en regiones tropicales y subtropicales y puede desarrollarse en sitios expuestos y soleados.","biotec":"Su micelio puede emplearse en la elaboración de biomateriales a partir de sustratos lignocelulósicos, con potencial para desarrollar materiales biodegradables. Además, produce pigmentos y metabolitos bioactivos de interés para aplicaciones biotecnológicas y ambientales.","creditos":["Fotografías por: Paola Montero Hidalgo"],"fotos":["18_pycnoporus_sanguineus_1.png","18_pycnoporus_sanguineus_2.png","18_pycnoporus_sanguineus_3.jpg","18_pycnoporus_sanguineus_4.jpg"],"score":6,"lat":-2.159722,"lon":-79.956111,"zona":"Laguna de oxidación","bosque":"Prosperina","altitud":null,"fecha":"","codigo":"","icono":"ic_18.png","registros":[{"codigo":"CC-163","conf":"exacta","taxon_base":"Pycnoporus sanguineus","lat":-2.159722,"lon":-79.956111,"lugar":"Laguna de oxidación","zona":"","bosque":"Prosperina","fecha":"2026-03-09","altitud":null,"sustrato":"Tronco caído","pileo":null,"estipite":null,"general":null,"temp":null,"humedad":null},{"codigo":"CC-222","conf":"exacta","taxon_base":"Pycnoporus sanguineus","lat":-2.135556,"lon":-80.086667,"lugar":"Cerro Blanco: Ruta Caseta Jaguar","zona":"E","bosque":"Cerro Blanco","fecha":"2026-03-25","altitud":385.0,"sustrato":"Rama caída","pileo":null,"estipite":null,"general":"1.3 cm","temp":26.0,"humedad":0.78}],"n_reg":2,"n_geo":2,"comest_verificar":["Sin interés gastronómico"],"colores":["blanco","naranja","rojo"],"sustratos":["lenoso","lignicola","madera","rama","tocon","tronco"]},{"id":20,"especie":"Trametes versicolor","genero":"Trametes","filo":"Basidiomycota","familia":"Polyporaceae","orden":"Polyporales","clase":"Agaricomycetes","comestibilidad":"","medidas":"","descripcion":"Basidiomas sésiles, de forma semicircular o flabeliforme. El píleo es delgado, plano, con superficie finamente aterciopelada a casi lisa y marcada por zonas concéntricas. Presenta una coloración rojo-anaranjada intensa, el himenóforo es poroide, con poros pequeños y circulares, de color similar al píleo o ligeramente más claro. La consistencia es dura, coriácea y tenaz, especialmente al madurar.","sustrato":"Especie lignícola y saprobia que crece sobre madera muerta de angiospermas, principalmente en troncos, ramas y tocones en distintos grados de descomposición, donde ocasiona pudrición blanca. Presenta una amplia distribución en regiones tropicales y subtropicales y puede desarrollarse en sitios expuestos y soleados.","biotec":"Su micelio puede emplearse en la elaboración de biomateriales a partir de sustratos lignocelulósicos, con potencial para desarrollar materiales biodegradables.","creditos":["Fotografías por: Paola Montero Hidalgo"],"fotos":["20_trametes_versicolor_1.png","20_trametes_versicolor_2.png","20_trametes_versicolor_3.jpg","20_trametes_versicolor_4.jpg"],"score":6,"lat":null,"lon":null,"zona":"","bosque":"","altitud":null,"fecha":"","codigo":"","icono":"ic_20.png","registros":[],"n_reg":0,"n_geo":0,"comest_verificar":["No comestible"],"colores":["blanco","gris","marron","naranja","negro","rojo"],"sustratos":["lenoso","lignicola","madera","rama","tocon","tronco"]},{"id":4,"especie":"Tremella fuciformis","genero":"Tremella","filo":"Basidiomycota","familia":"Tremellaceae","orden":"Tremellales","clase":"Tremellomycetes","comestibilidad":"","medidas":"6cm","descripcion":"Cuerpo fructífero gelatinoso, blanco y translúcido, de aspecto lobulado y ramificado, con apariencia similar a pequeños pétalos o estructuras cerebriformes. Su consistencia es blanda y cartilaginosa, y aumenta de tamaño en condiciones húmedas.","sustrato":"Especie saprótrofa, asociada principalmente a madera muerta de árboles y ramas en descomposición, donde suele crecer en ambientes cálidos y húmedos.","biotec":"Destaca por la producción de polisacáridos bioactivos, especialmente heteropolisacáridos, con propiedades antioxidantes e hidratantes. Además, es una especie de importancia alimentaria y medicinal, ampliamente cultivada para la obtención de biomasa y compuestos funcionales.","creditos":["Fotografías por: Ing. Julián Pérez & Paola Montero Hidalgo"],"fotos":["04_tremella_fuciformis_1.png","04_tremella_fuciformis_2.jpg","04_tremella_fuciformis_3.jpg","04_tremella_fuciformis_4.jpeg"],"score":6,"lat":-2.156944,"lon":-79.965556,"zona":"Albarrada Cuevas y Cañas","bosque":"Prosperina","altitud":null,"fecha":"","codigo":"","icono":"ic_04.png","registros":[{"codigo":"CC-105","conf":"exacta","taxon_base":"Tremella fuciformis","lat":-2.156944,"lon":-79.965556,"lugar":"Albarrada Cuevas y Cañas","zona":"","bosque":"Prosperina","fecha":"2026-02-25","altitud":null,"sustrato":"Árbol vivo (Karen foto)","pileo":null,"estipite":null,"general":null,"temp":null,"humedad":null},{"codigo":"CC-86","conf":"exacta","taxon_base":"Tremella fuciformis","lat":-2.154167,"lon":-79.977778,"lugar":"Albarrada Monos","zona":"","bosque":"Prosperina","fecha":"2026-02-11","altitud":231.0,"sustrato":"Tronco caído","pileo":null,"estipite":null,"general":"4 cm","temp":27.0,"humedad":0.79}],"n_reg":2,"n_geo":2,"comest_verificar":["Comestible"],"colores":["blanco","marron"],"sustratos":["arbol","lenoso","lignicola","madera","rama","tronco","vivo"]},{"id":22,"especie":"Xylaria hypoxylon","genero":"Xylaria","filo":"Ascomycota","familia":"Xylariaceae","orden":"Xylariales","clase":"Sordariomycetes","comestibilidad":"","medidas":"3cm","descripcion":"Estromas erectos, ramificados y aplanados, con aspecto de pequeñas astas de venado. Los ápices son blanquecinos durante la fase asexual por la presencia de conidios, mientras que la base es negra, carbonosa y rugosa. Con la madurez, el estroma se torna completamente negro y desarrolla peritecios visibles como pequeños puntos en la superficie.","sustrato":"Especie lignícola, saprótrofa, que crece sobre troncos, tocones y ramas caídas en descomposición. Es común en bosques húmedos tropicales y subtropicales, incluyendo bosques secos.","biotec":"Produce enzimas ligninolíticas, como lacasas y peroxidasas, con potencial para la degradación de materia lignocelulósica y biorremediación. Además, produce metabolitos secundarios bioactivos, como xilarinas, con actividad antimicrobiana reportada.","creditos":["Fotografías por: Ing. Julián Pérez & Paola Montero Hidalgo","Ilustrado por: Andrea Villavicencio"],"fotos":["22_xylaria_hypoxylon_1.png","22_xylaria_hypoxylon_2.jpg","22_xylaria_hypoxylon_3.png","22_xylaria_hypoxylon_4.jpeg"],"score":6,"lat":-2.147222,"lon":-79.955556,"zona":"Laguna de oxidación","bosque":"Prosperina","altitud":null,"fecha":"","codigo":"","icono":"ic_22.png","registros":[{"codigo":"CC-28","conf":"exacta","taxon_base":"Xylaria hypoxylon","lat":-2.147222,"lon":-79.955556,"lugar":"Laguna de oxidación","zona":"","bosque":"Prosperina","fecha":"2026-01-30","altitud":78.0,"sustrato":"Tronco caído","pileo":null,"estipite":null,"general":"3 cm","temp":26.0,"humedad":0.75},{"codigo":"CC-38","conf":"exacta","taxon_base":"Xylaria hypoxylon","lat":-2.149444,"lon":-79.955556,"lugar":"Albarrada Martín ","zona":"","bosque":"Prosperina","fecha":"2026-02-03","altitud":93.0,"sustrato":"Tronco caído","pileo":null,"estipite":null,"general":null,"temp":28.0,"humedad":0.74},{"codigo":"CC-72","conf":"exacta","taxon_base":"Xylaria hypoxylon","lat":-2.1525,"lon":-79.973333,"lugar":"Albarrada Monos","zona":"","bosque":"Prosperina","fecha":"2026-02-11","altitud":222.0,"sustrato":"Rama caída","pileo":null,"estipite":null,"general":"2 cm","temp":25.0,"humedad":0.87},{"codigo":"CC-206","conf":"exacta","taxon_base":"Xylaria hypoxylon","lat":null,"lon":null,"lugar":"Albarrada Monos","zona":"","bosque":"Prosperina","fecha":"2026-03-20","altitud":null,"sustrato":"Tronco caído","pileo":null,"estipite":null,"general":null,"temp":null,"humedad":null}],"n_reg":4,"n_geo":3,"comest_verificar":["No comestible"],"colores":["blanco","gris","marron","negro"],"sustratos":["lenoso","lignicola","madera","rama","tocon","tronco"]},{"id":7,"especie":"Auricularia mesentérica","genero":"Auricularia","filo":"Basidiomycota","familia":"Auriculariaceae","orden":"Auriculariales","clase":"Agaricomycetes","comestibilidad":"Comestible","medidas":"6.2cm","descripcion":"Cuerpos fructíferos en forma de repisa, frecuentemente fusionados lateralmente y formando grupos imbricados. Superficie de tonos grises. Consistencia gelatinosa, cartilaginosa, elástica y flexible, que se endurece y contrae al deshidratarse.","sustrato":"Especie lignícola y saprótrofa, frecuente sobre troncos, ramas y madera muerta de árboles caducifolios, donde participa en la descomposición de la materia leñosa.","biotec":"Degradación de lignina mediante enzimas ligninolíticas (lacasas y peroxidasas), de interés para procesos de biorremediación de residuos lignocelulósicos. Produce además polisacáridos con actividad antioxidante.","creditos":["Fotografías por: Paola Montero"],"fotos":["07_auricularia_mesenterica_1.png","07_auricularia_mesenterica_2.jpg","07_auricularia_mesenterica_3.jpg"],"score":7,"lat":-2.157222,"lon":-79.965556,"zona":"Albarrada Cuevas y Cañas","bosque":"Prosperina","altitud":null,"fecha":"","codigo":"","icono":"ic_07.png","registros":[{"codigo":"CC-10","conf":"exacta","taxon_base":"Auricularia mesenterica","lat":-2.157222,"lon":-79.965556,"lugar":"Albarrada Cuevas y Cañas","zona":"","bosque":"Prosperina","fecha":"2026-01-16","altitud":225.0,"sustrato":"Tronco caído","pileo":null,"estipite":null,"general":"6.2 cm","temp":29.0,"humedad":0.61},{"codigo":"CC-6","conf":"exacta","taxon_base":"Auricularia mesenterica","lat":-2.157222,"lon":-79.965556,"lugar":"Albarrada Cuevas y Cañas","zona":"","bosque":"Prosperina","fecha":"2026-01-16","altitud":225.0,"sustrato":"Tronco caído","pileo":null,"estipite":null,"general":"6.5 cm","temp":29.0,"humedad":0.61}],"n_reg":2,"n_geo":2,"comest_fuente":"borrador del catálogo","colores":["gris","marron","negro"],"sustratos":["arbol","lenoso","lignicola","madera","rama","tronco","vivo"]},{"id":3,"especie":"Dacryopinax elegans","genero":"Dacryopinax","filo":"Basidiomycota","familia":"Dacrymycetaceae","orden":"Dacrymycetales","clase":"Dacrymycetes","comestibilidad":"Comestible","medidas":"2cm","descripcion":"Fructificación blanda gelatinosa, píleo orbiculado a flabelado de color cafe-rojizo. Presentan una superficie lisa y consistencia cartilaginosa, con el himenio desarrollado sobre la superficie externa.","sustrato":"Especie lignícola y saprótrofa, que crece sobre ramas, troncos y madera muerta en descomposición, principalmente en ambientes húmedos y tropicales.","biotec":"Presenta halotolerancia y capacidad ligninolítica, produciendo lacasa y manganeso peroxidasa. Además, puede degradar el herbicidas incluso bajo condiciones de elevada salinidad, lo que evidencia su potencial para procesos de biorremediación de ambientes contaminados.","creditos":["Fotografías por: Paola Montero"],"fotos":["03_dacryopinax_elegans_1.png","03_dacryopinax_elegans_2.jpg","03_dacryopinax_elegans_3.jpg"],"score":7,"lat":-2.146389,"lon":-79.954722,"zona":"Laguna de oxidación","bosque":"Prosperina","altitud":null,"fecha":"","codigo":"","icono":"ic_03.png","registros":[{"codigo":"CC-170","conf":"exacta","taxon_base":"Dacryopinax elegans","lat":-2.146389,"lon":-79.954722,"lugar":"Laguna de oxidación","zona":"","bosque":"Prosperina","fecha":"2026-03-09","altitud":74.0,"sustrato":"Tronco caido ","pileo":"0.8 cm","estipite":"1 cm","general":"2 cm","temp":null,"humedad":null}],"n_reg":1,"n_geo":1,"comest_fuente":"borrador del catálogo","colores":["marron","naranja","rojo"],"sustratos":["lenoso","lignicola","madera","rama","tronco"]},{"id":16,"especie":"Leucocoprinus cretaceus","genero":"Leucocoprinus","filo":"Basidiomycota","familia":"Agaricaceae","orden":"Agaricales","clase":"Agaricomycetes","comestibilidad":"No comestible","medidas":"5.5cm","descripcion":"Píleo subgloboso a ovoide de color blanco tiza, enteramente recubierto por escamas. Estípite cilíndrico, esbelto y curvado, ensanchado en la base, con textura marcadamente escamosa similar al píleo y restos de micelio adheridos al sustrato basal.","sustrato":"Es una especie saprobia, asociada a materia orgánica en descomposición. Se ha registrado creciendo en astillas de madera, aserrín, compost y suelo rico en materia orgánica, así como en jardines, macetas y ambientes modificados.","biotec":"Presenta capacidad de crecer sobre diversos sustratos ricos en materia orgánica, incluyendo residuos vegetales y lignocelulósicos, lo que le confiere potencial para el aprovechamiento de residuos orgánicos y su cultivo en condiciones tropicales.","creditos":["Fotografías por: Paola Montero Hidalgo"],"fotos":["16_leucocoprinus_cretaceus_1.png","16_leucocoprinus_cretaceus_2.jpg","16_leucocoprinus_cretaceus_3.jpg"],"score":7,"lat":-2.150556,"lon":-79.974167,"zona":"Albarrada Monos","bosque":"Prosperina","altitud":null,"fecha":"","codigo":"","icono":"ic_16.png","registros":[{"codigo":"CC-80","conf":"exacta","taxon_base":"Leucocoprinus cretaceus","lat":-2.150556,"lon":-79.974167,"lugar":"Albarrada Monos","zona":"","bosque":"Prosperina","fecha":"2026-02-11","altitud":222.0,"sustrato":"Hojarasca","pileo":"1. 5 cm","estipite":"5 cm","general":"5.5 cm","temp":27.0,"humedad":0.79},{"codigo":"CC-44","conf":"genero","taxon_base":"Leucocoprinus","lat":-2.149444,"lon":-79.966389,"lugar":"Albarrada Martín ","zona":"","bosque":"Prosperina","fecha":"2026-02-03","altitud":93.0,"sustrato":"Rama caída","pileo":"3 cm","estipite":"5.4 cm","general":null,"temp":28.0,"humedad":0.69},{"codigo":"CC-20","conf":"genero","taxon_base":"Leucocoprinus","lat":null,"lon":null,"lugar":"FCV (Campus)","zona":"","bosque":"Prosperina","fecha":"2026-01-22","altitud":null,"sustrato":"Rama caída","pileo":"2.5 cm","estipite":"5.5 cm","general":"6.5 cm","temp":null,"humedad":null}],"n_reg":3,"n_geo":2,"comest_fuente":"borrador del catálogo","colores":["blanco","gris","marron"],"sustratos":["hojarasca","lenoso","lignicola","madera","rama","suelo","terricola"]},{"id":5,"especie":"Tremella encephala","genero":"Tremella","filo":"Basidiomycota","familia":"Tremellaceae","orden":"Tremellales","clase":"Tremellomycetes","comestibilidad":"Sin interés gastronómico","medidas":"2.5cm, 4.5cm","descripcion":"Cuerpos fructíferos pseudoglobosos y de aspecto cerebriforme, con superficie cubierta por pliegues y rugosidades. El himenio recubre toda la superficie y presenta tonalidades crema-rosadas. Consistencia blanda, elástica, gelatinosa y translúcida, con un núcleo interno blanco y firme que constituye un rasgo característico de la especie.","sustrato":"Especie asociada a madera en descomposición, donde desarrolla sus cuerpos fructíferos directamente sobre ramas y troncos. Se encuentra principalmente en ambientes húmedos y boscosos.","biotec":"Produce polisacáridos extracelulares, principalmente glucuronoxilomananos, que presentan interés como biopolímeros para aplicaciones en las industrias alimentaria y farmacéutica. Su capacidad de producir estos compuestos también permite considerar su potencial para procesos de fermentación y obtención de metabolitos de interés biotecnológico.","creditos":["Fotografía por: Paola Montero Hidalgo","Ilustrado por: Pamela Soledispa"],"fotos":["05_tremella_encephala_1.png","05_tremella_encephala_2.jpg"],"score":7,"lat":-2.154167,"lon":-79.977778,"zona":"Albarrada Monos","bosque":"Prosperina","altitud":null,"fecha":"","codigo":"","icono":"ic_05.png","registros":[{"codigo":"CC-91","conf":"exacta","taxon_base":"Tremella encephala","lat":-2.154167,"lon":-79.977778,"lugar":"Albarrada Monos","zona":"","bosque":"Prosperina","fecha":"2026-02-11","altitud":228.0,"sustrato":"Tronco caído","pileo":"1.5 cm","estipite":"4.5 cm","general":"2.5 cm","temp":27.0,"humedad":0.79}],"n_reg":1,"n_geo":1,"comest_fuente":"borrador del catálogo","colores":["blanco","marron","rosado"],"sustratos":["lenoso","lignicola","madera","rama","tronco"]},{"id":21,"especie":"Cookeina tricoloma","genero":"Cookeina","filo":"Ascomycota","familia":"Sarcoscyphaceae","orden":"Pezizales","clase":"Pezizomycetes","comestibilidad":"No comestible","medidas":"2.5cm, 3cm","descripcion":"Ascoma con forma de copa, superficie interna (himenio) lisa, de color rosado a anaranjado brillante. Tono pálido en el exterior, con presencia de pelos, especialmente hacia el margen, lo que le da una apariencia ligeramente vellosa. Estípite corto.","sustrato":"Se desarrolla sobre madera muerta, especialmente en troncos y ramas caídas en descomposición. Frecuente en bosques húmedos tropicales, en ambientes sombreados y con alta humedad. Puede crecer de forma solitaria o en pequeños grupos.","biotec":"Su llamativa forma de copa y coloración también la convierten en una especie de interés para la educación ambiental, la fotografía de naturaleza y estudios de biodiversidad fúngica.","creditos":["Fotografías por: Paola Montero Hidalgo","Ilustrado por: Paola Montero"],"fotos":["21_cookeina_tricoloma_1.png","21_cookeina_tricoloma_2.png","21_cookeina_tricoloma_3.jpg","21_cookeina_tricoloma_4.jpg","21_cookeina_tricoloma_5.jpg"],"score":6,"lat":-2.136389,"lon":-80.089722,"zona":"Cerro Blanco: Ruta Caseta Jaguar","bosque":"Cerro Blanco","altitud":null,"fecha":"","codigo":"","icono":"ic_21.png","registros":[{"codigo":"CC-136","conf":"exacta","taxon_base":"Cookeina tricholoma","lat":-2.136389,"lon":-80.089722,"lugar":"Cerro Blanco: Ruta Caseta Jaguar","zona":"E","bosque":"Cerro Blanco","fecha":"2026-03-04","altitud":370.0,"sustrato":"Rama caída","pileo":"0.6 cm","estipite":"2.5 cm","general":"3 cm","temp":25.0,"humedad":0.94},{"codigo":"CC-205","conf":"exacta","taxon_base":"Cookeina tricholoma","lat":null,"lon":null,"lugar":"Albarrada Monos","zona":"","bosque":"Prosperina","fecha":"2026-03-20","altitud":null,"sustrato":"Tronco caído","pileo":null,"estipite":null,"general":null,"temp":null,"humedad":null}],"n_reg":2,"n_geo":1,"comest_fuente":"borrador del catálogo","colores":["marron","naranja","rosado"],"sustratos":["lenoso","lignicola","madera","rama","tronco"]},{"id":9,"especie":"Hexagonia hydnoides","genero":"Hexagonia","filo":"Basidiomycota","familia":"Polyporaceae","orden":"Polyporales","clase":"Agaricomycetes","comestibilidad":"","medidas":"5.3cm","descripcion":"Cuerpos fructíferos semicirculares a reniformes, generalmente agrupados e imbricados. Superficie superior de color grisáceo a pardo, con zonas concéntricas y textura aterciopelada. Superficie inferior con poros hexagonales a irregulares, relativamente grandes y alargados, de color crema a grisáceo. Contexto delgado, fibroso y coriáceo.","sustrato":"Especie lignícola y saprótrofa, asociada a madera muerta, donde ocasiona pudrición blanca.","biotec":"Presenta actividad de polifenoloxidasas, con potencial para la construcción de biosensores electroquímicos para la detección de compuestos fenólicos. Además, extractos de su cuerpo fructífero contienen metabolitos como terpenos, flavonoides, taninos y esteroles, lo que evidencia interés para estudios fitoquímicos.","creditos":["Fotografías por: Adriana Suárez"],"fotos":["09_hexagonia_hydnoides_1.png","09_hexagonia_hydnoides_2.png","09_hexagonia_hydnoides_3.jpeg","09_hexagonia_hydnoides_4.jpeg"],"score":6,"lat":-2.149444,"lon":-79.960556,"zona":"Ruta Lago ","bosque":"Prosperina","altitud":null,"fecha":"","codigo":"","icono":"ic_09.png","registros":[{"codigo":"CC-117","conf":"exacta","taxon_base":"Hexagonia hydnoides","lat":-2.149444,"lon":-79.960556,"lugar":"Ruta Lago ","zona":"","bosque":"Prosperina","fecha":"2026-02-27","altitud":null,"sustrato":"Arbol caido ","pileo":null,"estipite":null,"general":null,"temp":null,"humedad":null},{"codigo":"CC-160","conf":"exacta","taxon_base":"Hexagonia hydnoides","lat":-2.138333,"lon":-80.088056,"lugar":"Cerro Blanco: Ruta Caseta Jaguar","zona":"E","bosque":"Cerro Blanco","fecha":"2026-03-04","altitud":368.0,"sustrato":"Tronco caído","pileo":null,"estipite":null,"general":null,"temp":25.0,"humedad":0.94}],"n_reg":2,"n_geo":2,"colores":["blanco","gris","marron","negro"],"sustratos":["arbol","lenoso","lignicola","madera","tronco","vivo"]},{"id":12,"especie":"Hygrocybe miniata","genero":"Hygrocybe","filo":"Basidiomycota","familia":"Hygrophoraceae","orden":"Agaricales","clase":"Agaricomycetes","comestibilidad":"","medidas":"1.5cm, 3.5cm","descripcion":"Cuerpos fructíferos pequeños, con píleo convexo a aplanado, de color rojo escarlata, con superficie seca y finamente escamosa. Láminas adnatas a ligeramente decurrentes, de color amarillo a anaranjado. Estípite delgado, cilíndrico, de color rojo y superficie lisa a finamente fibrilosa.","sustrato":"Especie saprótrofa, asociada principalmente a suelos ricos en materia orgánica, hojarasca y restos vegetales en descomposición. Se encuentra en ambientes húmedos, especialmente en pastizales y bosques.","biotec":"Produce pigmentos naturales del tipo muscaflavina, responsables de parte de su coloración característica, que presentan interés para el estudio de pigmentos fúngicos y sus rutas biosintéticas.","creditos":["Fotografías por: Karen Yánez & Paola Montero Hidalgo"],"fotos":["12_hygrocybe_miniata_1.png","12_hygrocybe_miniata_2.png","12_hygrocybe_miniata_3.jpg","12_hygrocybe_miniata_4.jpg","12_hygrocybe_miniata_5.jpg"],"score":6,"lat":-2.150556,"lon":-79.977778,"zona":"Albarrada Monos","bosque":"Prosperina","altitud":null,"fecha":"","codigo":"","icono":"ic_12.png","registros":[{"codigo":"CC-89","conf":"genero","taxon_base":"Hygrocybe","lat":-2.150556,"lon":-79.977778,"lugar":"Albarrada Monos","zona":"","bosque":"Prosperina","fecha":"2026-02-11","altitud":244.0,"sustrato":"Rama caída","pileo":"1.5 cm","estipite":"4.5 cm","general":"5.5 cm","temp":27.0,"humedad":0.79},{"codigo":"CC-215","conf":"genero","taxon_base":"Hygrocybe","lat":null,"lon":null,"lugar":"Albarrada Monos","zona":"","bosque":"Prosperina","fecha":"2026-03-20","altitud":null,"sustrato":"Tronco caído","pileo":null,"estipite":null,"general":null,"temp":null,"humedad":null}],"n_reg":2,"n_geo":1,"comest_verificar":["Sin interés gastronómico"],"colores":["amarillo","blanco","marron","naranja","rojo","rosado"],"sustratos":["hojarasca","lenoso","lignicola","madera","rama","suelo","terricola","tronco"]},{"id":14,"especie":"Podoscypha petalodes","genero":"Podoscypha","filo":"Basidiomycota","familia":"Meruliaceae","orden":"Polyporales","clase":"Agaricomycetes","comestibilidad":"","medidas":"1cm","descripcion":"Cuerpos fructíferos espatulados, flabeliformes o infundibuliformes, delgados y de consistencia coriácea-elástica. Superficie superior pardo-clara, con zonación concéntrica y textura finamente aterciopelada. Margen ondulado, lobulado y rizado. Himenóforo liso a ligeramente rugoso, de color grisáceo a marrón pálido. Estípite corto, frecuentemente fusionado lateralmente en la base, formando agrupaciones en roseta.","sustrato":"Especie saprótrofa y lignícola, que crece sobre troncos, tocones y madera en descomposición, incluso sobre madera enterrada. Se encuentra principalmente en ambientes tropicales y templados húmedos.","biotec":"Presenta capacidad para producir enzimas celulolíticas, capaces de degradar residuos lignocelulósicos. Su actividad enzimática permite obtener azúcares fermentables a partir de mazorcas de maíz, evidenciando potencial para el aprovechamiento de residuos agrícolas y la producción de biocombustibles.","creditos":["Fotografía por: Paola Montero Hidalgo","Ilustrado por: Pamela Soledispa"],"fotos":["14_podoscypha_petalodes_1.png","14_podoscypha_petalodes_2.jpg"],"score":6,"lat":-2.146944,"lon":-79.968056,"zona":"FCNM (Campus)","bosque":"Prosperina","altitud":null,"fecha":"","codigo":"","icono":"ic_14.png","registros":[{"codigo":"CC-22","conf":"exacta","taxon_base":"Podoscypha petalodes","lat":-2.146944,"lon":-79.968056,"lugar":"FCNM (Campus)","zona":"","bosque":"Prosperina","fecha":"2026-01-29","altitud":90.0,"sustrato":"Tronco cortado","pileo":null,"estipite":null,"general":"3 cm","temp":29.0,"humedad":0.68},{"codigo":"CC-63","conf":"exacta","taxon_base":"Podoscypha petalodes","lat":null,"lon":null,"lugar":"Lago ESPOL","zona":"","bosque":"Prosperina","fecha":"2026-02-06","altitud":null,"sustrato":"","pileo":null,"estipite":null,"general":null,"temp":null,"humedad":null}],"n_reg":2,"n_geo":1,"colores":["gris","marron"],"sustratos":["lenoso","lignicola","madera","tocon","tronco"]},{"id":8,"especie":"Polyporus tricholoma","genero":"Polyporus","filo":"Basidiomycota","familia":"Polyporaceae","orden":"Polyporales","clase":"Agaricomycetes","comestibilidad":"","medidas":"","descripcion":"Cuerpos fructíferos pileados y estipitados, de tamaño pequeño a mediano. Sombrero circular a reniforme, de superficie seca, lisa a finamente escamosa, de color crema a pardo amarillento. Himenio formado por poros angulares a alargados, de color blanco a crema, que descienden ligeramente sobre el estípite. Estípite central a excéntrico, corto, fibroso y de tonalidad blanquecina a parda.","sustrato":"Especie lignícola y saprótrofa que crece sobre troncos, ramas y tocones de madera muerta, principalmente en ambientes boscosos húmedos, donde contribuye a la descomposición de la materia leñosa.","biotec":"Presenta capacidad para producir enzimas ligninolíticas, como lacasa, manganeso peroxidasa y lignina peroxidasa, involucradas en la degradación de compuestos recalcitrantes. Esta actividad le confiere potencial para la biorremediación de contaminantes y el aprovechamiento de residuos lignocelulósicos.","creditos":["Fotografías por: Paola Montero"],"fotos":["08_polyporus_tricholoma_1.jpeg","08_polyporus_tricholoma_2.jpeg"],"score":6,"lat":null,"lon":null,"zona":"","bosque":"","altitud":null,"fecha":"","codigo":"","icono":"ic_08.png","icono_circular":true,"registros":[],"n_reg":0,"n_geo":0,"comest_verificar":["Comestible","No comestible"],"colores":["amarillo","blanco","marron"],"sustratos":["lenoso","lignicola","madera","rama","tocon","tronco"]},{"id":23,"especie":"Xylaria polymorpha","genero":"Xylaria","filo":"Ascomycota","familia":"Xylariaceae","orden":"Xylariales","clase":"Sordariomycetes","comestibilidad":"No comestible","medidas":"","descripcion":"Estromas erectos, robustos y de forma claviforme, generalmente simples o ligeramente comprimidos, con apariencia de dedos. Inicialmente son grisáceos a marrón oscuro y, al madurar, se vuelven negros, carbonosos y rugosos por el desarrollo de los peritecios, cuyos ostiolos forman pequeños puntos en la superficie.","sustrato":"Especie lignícola y saprótrofa que crece principalmente sobre madera muerta, tocones y restos leñosos en descomposición, especialmente de angiospermas.","biotec":"Produce metabolitos secundarios, como polimorfinas y citocalasinas, con actividades biológicas de interés, incluyendo efectos antimicrobianos y citotóxicos. Además, produce enzimas lignocelulolíticas que contribuyen a la degradación de la madera.","creditos":["Fotografía por: Paola Montero Hidalgo"],"fotos":["23_xylaria_polymorpha_1.jpeg","23_xylaria_polymorpha_2.jpg"],"score":6,"lat":-2.133889,"lon":-80.088333,"zona":"Cerro Blanco: Ruta Caseta Jaguar","bosque":"Cerro Blanco","altitud":null,"fecha":"","codigo":"","icono":"ic_23.png","icono_circular":true,"registros":[{"codigo":"CC-157","conf":"exacta","taxon_base":"Xylaria polymorpha","lat":-2.133889,"lon":-80.088333,"lugar":"Cerro Blanco: Ruta Caseta Jaguar","zona":"E","bosque":"Cerro Blanco","fecha":"2026-03-04","altitud":258.0,"sustrato":"Tronco caído","pileo":null,"estipite":null,"general":"6.5 cm","temp":25.0,"humedad":0.94},{"codigo":"CC-158","conf":"exacta","taxon_base":"Xylaria polymorpha","lat":-2.133889,"lon":-80.088333,"lugar":"Cerro Blanco: Ruta Caseta Jaguar","zona":"E","bosque":"Cerro Blanco","fecha":"2026-03-04","altitud":258.0,"sustrato":"Tronco caído","pileo":null,"estipite":null,"general":"7.5 cm","temp":25.0,"humedad":0.94},{"codigo":"CC-173","conf":"exacta","taxon_base":"Xylaria polymorpha","lat":-2.146667,"lon":-79.954722,"lugar":"Laguna de oxidación","zona":"","bosque":"Prosperina","fecha":"2026-03-09","altitud":75.0,"sustrato":"Tronco caido ","pileo":null,"estipite":null,"general":"9.5 cm","temp":null,"humedad":null},{"codigo":"CC-75","conf":"exacta","taxon_base":"Xylaria polymorpha.","lat":-2.1525,"lon":-79.973333,"lugar":"Albarrada Monos","zona":"","bosque":"Prosperina","fecha":"2026-02-11","altitud":232.0,"sustrato":"Tronco caído","pileo":null,"estipite":null,"general":"4 cm","temp":25.0,"humedad":0.87},{"codigo":"CC-85","conf":"exacta","taxon_base":"Xyalria polymorpha","lat":-2.149722,"lon":-79.977222,"lugar":"Albarrada Monos","zona":"","bosque":"Prosperina","fecha":"2026-02-11","altitud":224.0,"sustrato":"Tronco caído","pileo":null,"estipite":null,"general":"9 cm","temp":27.0,"humedad":0.79},{"codigo":"CC-98","conf":"exacta","taxon_base":"Xylaria polymorpha","lat":-2.154722,"lon":-79.959444,"lugar":"Albarrada Cuevas y Cañas","zona":"","bosque":"Prosperina","fecha":"2026-02-25","altitud":null,"sustrato":"Tronco caído","pileo":null,"estipite":null,"general":null,"temp":null,"humedad":null},{"codigo":"CC-109","conf":"exacta","taxon_base":"Xylaria polymorpha","lat":null,"lon":null,"lugar":"Albarrada Cuevas y Cañas","zona":"","bosque":"Prosperina","fecha":"2026-02-25","altitud":null,"sustrato":"Tronco cortado ","pileo":null,"estipite":null,"general":null,"temp":null,"humedad":null}],"n_reg":7,"n_geo":6,"comest_fuente":"borrador del catálogo","colores":["gris","marron","negro"],"sustratos":["lenoso","lignicola","madera","tocon","tronco"]},{"id":17,"especie":"Schizophyllum commune","genero":"Schizophyllum","filo":"Basidiomycota","familia":"Schizophyllaceae","orden":"Agaricales","clase":"Agaricomycetes","comestibilidad":"","medidas":"","descripcion":"Basidioma generalmente en forma de abanico o semicircular. El píleo es blanco, grisáceo o beige, con una superficie densamente cubierta de pelos finos y rígidos, que le dan una apariencia aterciopelada. El margen suele ser ondulado o lobulado. El himenóforo presenta láminas radiales muy características, de color gris o rosado.","sustrato":"Especie principalmente saprobia que crece sobre una amplia variedad de residuos vegetales lignocelulósicos, especialmente madera muerta. Presenta una distribución amplia y se encuentra en bosques, áreas rurales y zonas intervenidas, especialmente en ambientes cálidos y húmedos. Puede tolerar períodos de sequía mediante la desecación de sus basidiomas, los cuales pueden rehidratarse cuando aumenta la humedad.","biotec":"Se caracteriza por la formación de biomateriales miceliales con propiedades mecánicas modulables, que pueden presentar desde estructuras resistentes hasta materiales flexibles y elásticos. Estas características le confieren potencial para el desarrollo de materiales biodegradables a partir de sustratos lignocelulósicos.","creditos":["Fotografía por: Paola Montero Hidalgo"],"fotos":["17_schizophyllum_commune_1.jpg"],"score":6,"lat":-2.136944,"lon":-80.088611,"zona":"Cerro Blanco: Ruta Caseta Jaguar","bosque":"Cerro Blanco","altitud":null,"fecha":"","codigo":"","icono":"ic_17.png","icono_circular":true,"registros":[{"codigo":"CC-145","conf":"exacta","taxon_base":"Schizophyllum commune","lat":-2.136944,"lon":-80.088611,"lugar":"Cerro Blanco: Ruta Caseta Jaguar","zona":"E","bosque":"Cerro Blanco","fecha":"2026-03-04","altitud":379.0,"sustrato":"Rama caída","pileo":null,"estipite":null,"general":"2.5 cm","temp":25.0,"humedad":0.94},{"codigo":"CC-2","conf":"exacta","taxon_base":"Schizophyllum commune","lat":-2.156389,"lon":-79.963056,"lugar":"Albarrada Cuevas y Cañas","zona":"","bosque":"Prosperina","fecha":"2026-01-16","altitud":180.0,"sustrato":"Tronco caído","pileo":"0.6 cm","estipite":null,"general":"0.6 cm","temp":29.0,"humedad":0.68},{"codigo":"CC-62","conf":"exacta","taxon_base":"Schizophyllum commune","lat":null,"lon":null,"lugar":"Lago ESPOL","zona":"","bosque":"Prosperina","fecha":"2026-02-06","altitud":null,"sustrato":"","pileo":null,"estipite":null,"general":null,"temp":null,"humedad":null}],"n_reg":3,"n_geo":2,"comest_verificar":["Comestible","Sin interés gastronómico"],"colores":["blanco","gris","marron","rosado"],"sustratos":["lenoso","lignicola","madera","rama","tronco"]},{"id":13,"especie":"Mycena polyadelpha","genero":"Mycena","filo":"Basidiomycota","familia":"Mycenaceae","orden":"Agaricales","clase":"Agaricomycetes","comestibilidad":"","medidas":"1cm, 3cm","descripcion":"","sustrato":"","biotec":"","creditos":["Fotografía por: Paola Montero Hidalgo","Ilustrado por: Mónica Quimis"],"fotos":["13_mycena_polyadelpha_1.png","13_mycena_polyadelpha_2.png","13_mycena_polyadelpha_3.jpg"],"score":3,"lat":-2.156944,"lon":-79.965278,"zona":"Albarrada Cuevas y Cañas","bosque":"Prosperina","altitud":null,"fecha":"","codigo":"","icono":"ic_13.png","registros":[{"codigo":"CC-5","conf":"exacta","taxon_base":"Mycena polyadelpha","lat":-2.156944,"lon":-79.965278,"lugar":"Albarrada Cuevas y Cañas","zona":"","bosque":"Prosperina","fecha":"2026-01-16","altitud":220.0,"sustrato":"Rama caída","pileo":"0.2 cm","estipite":"1 cm","general":"2 cm","temp":29.0,"humedad":0.63},{"codigo":"CC-164","conf":"genero","taxon_base":"Mycena","lat":-2.159722,"lon":-79.956111,"lugar":"Laguna de oxidación","zona":"","bosque":"Prosperina","fecha":"2026-03-09","altitud":null,"sustrato":"","pileo":null,"estipite":null,"general":null,"temp":null,"humedad":null},{"codigo":"CC-199","conf":"genero","taxon_base":"Mycena","lat":-2.151389,"lon":-79.973889,"lugar":"Albarrada Monos","zona":"","bosque":"Prosperina","fecha":"2026-03-20","altitud":null,"sustrato":"Rama caída","pileo":null,"estipite":null,"general":null,"temp":null,"humedad":null},{"codigo":"CC-46","conf":"genero","taxon_base":"Mycena","lat":-2.149722,"lon":-79.966111,"lugar":"Albarrada Martín ","zona":"","bosque":"Prosperina","fecha":"2026-02-03","altitud":98.0,"sustrato":"Caña caída ","pileo":"1 cm","estipite":"3.3 cm","general":"3.5 cm","temp":28.0,"humedad":0.69},{"codigo":"CC-110","conf":"exacta","taxon_base":"Mycena polyadelpha","lat":null,"lon":null,"lugar":"Albarrada Cuevas y Cañas","zona":"","bosque":"Prosperina","fecha":"2026-02-25","altitud":null,"sustrato":"Rama caída","pileo":null,"estipite":null,"general":null,"temp":null,"humedad":null}],"n_reg":5,"n_geo":4,"colores":["blanco","gris"],"sustratos":["cana","lenoso","lignicola","madera","rama"]},{"id":15,"especie":"Marasmius rotula","genero":"Marasmius","filo":"Basidiomycota","familia":"Marasmiaceae","orden":"Agaricales","clase":"Agaricomycetes","comestibilidad":"","medidas":"3cm, 3.2cm","descripcion":"","sustrato":"","biotec":"","creditos":["Fotografía por: Paola Montero Hidalgo","Fotografías por: Paola Montero Hidalgo & Celi","Ilustrado por: Andrea Villavicencio"],"fotos":["15_marasmius_rotula_1.png","15_marasmius_rotula_2.jpg"],"score":3,"lat":-2.15,"lon":-79.960556,"zona":"Ruta Lago ","bosque":"Prosperina","altitud":null,"fecha":"","codigo":"","icono":"ic_15.png","registros":[{"codigo":"CC-114","conf":"genero","taxon_base":"Marasmius","lat":-2.15,"lon":-79.960556,"lugar":"Ruta Lago ","zona":"","bosque":"Prosperina","fecha":"2026-02-27","altitud":80.0,"sustrato":"Caña humeda ","pileo":null,"estipite":null,"general":null,"temp":null,"humedad":null},{"codigo":"CC-172","conf":"genero","taxon_base":"Mariasmus","lat":-2.146389,"lon":-79.954722,"lugar":"Laguna de oxidación","zona":"","bosque":"Prosperina","fecha":"2026-03-09","altitud":77.0,"sustrato":"Rama caida ","pileo":"0.3 cm","estipite":"3 cm","general":"3.2 cm","temp":null,"humedad":null},{"codigo":"CC-77","conf":"probable","taxon_base":"Marasmius rotula o siccus","lat":-2.1525,"lon":-79.973333,"lugar":"Albarrada Monos","zona":"","bosque":"Prosperina","fecha":"2026-02-11","altitud":232.0,"sustrato":"Tronco caído","pileo":"0.8 cm","estipite":"3 cm","general":"3.2 cm","temp":25.0,"humedad":0.87},{"codigo":"CC-208","conf":"genero","taxon_base":"Marasmius","lat":null,"lon":null,"lugar":"Albarrada Monos","zona":"","bosque":"Prosperina","fecha":"2026-03-20","altitud":null,"sustrato":"Rama caída","pileo":null,"estipite":null,"general":null,"temp":null,"humedad":null}],"n_reg":4,"n_geo":3,"colores":["marron"],"sustratos":["cana","lenoso","lignicola","madera","rama","tronco"]},{"id":2,"especie":"Psathyrella sp.","genero":"Psathyrella","filo":"Basidiomycota","familia":"Psathyrellaceae","orden":"","clase":"Agaricomycetes","comestibilidad":"","medidas":"2cm","descripcion":"","sustrato":"","biotec":"","creditos":["Ilustrado por: Mónica Quimis","Ilustrado por: Charly Delgado"],"fotos":["02_psathyrella_sp_1.jpeg","02_psathyrella_sp_2.png"],"score":3,"lat":-2.146667,"lon":-79.954722,"zona":"Laguna de oxidación","bosque":"Prosperina","altitud":null,"fecha":"","codigo":"","icono":"ic_02.png","icono_circular":true,"registros":[{"codigo":"CC-174","conf":"exacta","taxon_base":"Psathyrella","lat":-2.146667,"lon":-79.954722,"lugar":"Laguna de oxidación","zona":"","bosque":"Prosperina","fecha":"2026-03-09","altitud":75.0,"sustrato":"Suelo ","pileo":"1.2 cm","estipite":"3 cm","general":"3.6 cm","temp":null,"humedad":null},{"codigo":"CC-203","conf":"exacta","taxon_base":"Psathyrella","lat":null,"lon":null,"lugar":"Albarrada Monos","zona":"","bosque":"Prosperina","fecha":"2026-03-20","altitud":null,"sustrato":"Tronco caído","pileo":null,"estipite":null,"general":null,"temp":null,"humedad":null}],"n_reg":2,"n_geo":1,"comest_verificar":["Comestible","No comestible"],"colores":["amarillo","marron","negro"],"sustratos":["lenoso","lignicola","madera","suelo","terricola","tronco"]},{"id":6,"especie":"Tremella foliacea","genero":"Tremella","filo":"Basidiomycota","familia":"Tremellaceae","orden":"Tremellales","clase":"Tremellomycetes","comestibilidad":"Sin interés gastronómico","medidas":"","descripcion":"","sustrato":"","biotec":"","creditos":["Fotografías por: Paola Montero Hidalgo"],"fotos":["06_tremella_foliacea_1.png","06_tremella_foliacea_2.jpg"],"score":3,"lat":-2.138333,"lon":-80.088056,"zona":"Cerro Blanco: Ruta Caseta Jaguar","bosque":"Cerro Blanco","altitud":null,"fecha":"","codigo":"","icono":"ic_06.png","icono_circular":true,"registros":[{"codigo":"CC-152","conf":"exacta","taxon_base":"Tremella foliacea","lat":-2.138333,"lon":-80.088056,"lugar":"Cerro Blanco: Ruta Caseta Jaguar","zona":"E","bosque":"Cerro Blanco","fecha":"2026-03-04","altitud":400.0,"sustrato":"Tronco caído","pileo":null,"estipite":null,"general":null,"temp":25.0,"humedad":0.94},{"codigo":"CC-93","conf":"exacta","taxon_base":"Tremella foliacea","lat":null,"lon":null,"lugar":"Albarrada Monos","zona":"","bosque":"Prosperina","fecha":"2026-02-11","altitud":228.0,"sustrato":"Rama caída","pileo":null,"estipite":null,"general":"2 cm","temp":27.0,"humedad":0.79}],"n_reg":2,"n_geo":1,"comest_fuente":"borrador del catálogo","colores":["gris","marron","negro"],"sustratos":["lenoso","lignicola","madera","rama","tronco"]},{"id":19,"especie":"Auricularia cornea","genero":"Auricularia","filo":"Basidiomycota","familia":"Auriculariaceae","orden":"Auriculariales","clase":"Agaricomycetes","comestibilidad":"","medidas":"","descripcion":"","sustrato":"","biotec":"","creditos":[],"fotos":[],"score":1,"lat":-2.148333,"lon":-79.959722,"zona":"Ruta Lago ","bosque":"Prosperina","altitud":null,"fecha":"","codigo":"","icono":"ic_sinfoto.png","registros":[{"codigo":"CC-123","conf":"exacta","taxon_base":"Auricularia cornea","lat":-2.148333,"lon":-79.959722,"lugar":"Ruta Lago ","zona":"","bosque":"Prosperina","fecha":"2026-02-27","altitud":null,"sustrato":"Arbol caido vivo","pileo":null,"estipite":null,"general":null,"temp":null,"humedad":null},{"codigo":"CC-148","conf":"exacta","taxon_base":"Auricularia cornea","lat":-2.136944,"lon":-80.088611,"lugar":"Cerro Blanco: Ruta Caseta Jaguar","zona":"E","bosque":"Cerro Blanco","fecha":"2026-03-04","altitud":379.0,"sustrato":"Tronco caído","pileo":null,"estipite":null,"general":null,"temp":25.0,"humedad":0.94}],"n_reg":2,"n_geo":2,"sin_foto":true,"nota":"Ficha sin redactar en el borrador: la tabla de taxonomía que aparecía bajo este nombre pertenece a Trametes versicolor. Familia y orden corregidos por coherencia con el género.","colores":[],"sustratos":["arbol","lenoso","lignicola","madera","tronco","vivo"]}];
+restaurar(); pintarEspecies();
+pintarZonas();
+cargarOSM();
+</script>
+</body>
+</html>
