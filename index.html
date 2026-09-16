@@ -77,13 +77,41 @@ body{
 /* si el ejemplar esta pegado arriba, la etiqueta va debajo */
 .obj.bajo .nombre,#info .flot .h.bajo .nm{top:auto;bottom:-30px}
 
-/* ── BARRA CENTRAL FLOTANTE ── */
-#nav{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);
+/* ── TITULO Y BARRA CENTRAL ──
+   El titulo va desnudo sobre el lienzo, sin pildora ni fondo. Para que
+   no se pierda cuando un ejemplar le pasa por detras, las letras se
+   recortan del propio lienzo: un halo del color del fondo, pintado
+   ANTES del relleno (paint-order), separa la tipografia de lo que haya
+   detras sin meter una caja ni una sombra.
+
+   Se descarto mix-blend-mode:difference, que era la solucion elegante:
+   medido sobre los 16 recortes reales cae a 1.0:1 (invisible) en los
+   grises medios y baja de 2:1 sobre Pycnoporus y Marasmius. El halo
+   mantiene 17:1 constante, sea lo que sea que pase por detras.
+
+   El titulo es hermano de #plate y no vive dentro de #nav para poder
+   llevar pointer-events:none sin desactivar los botones: asi el clic
+   atraviesa el titulo y llega a los hongos que quedan debajo. */
+#titulo{position:fixed;left:50%;bottom:calc(50% + 21px);
+  transform:translateX(-50%);z-index:100;
+  /* en una linea el titulo necesitaria ~800px a 38px de cuerpo, asi que
+     con este ancho cae siempre en dos, y text-wrap:balance las reparte */
+  width:min(92vw,660px);padding:0 21px;text-align:center;
+  pointer-events:none}   /* deja pasar el clic a los hongos de detras */
+#titulo .marca{font-size:clamp(21px, 3.1vw, 38px);letter-spacing:-0.035em;
+  line-height:1.12;text-wrap:balance;color:var(--carbon);
+  paint-order:stroke fill;
+  -webkit-text-stroke:6px var(--gallery-plate);
+  text-stroke:6px var(--gallery-plate)}
+/* Sin paint-order el trazo se pintaria sobre el relleno y adelgazaria
+   la letra hasta romperla: mejor renunciar al halo que deformarla. */
+@supports not (paint-order: stroke){
+  #titulo .marca{-webkit-text-stroke:0;text-stroke:0;
+    background:var(--gallery-plate);box-decoration-break:clone;
+    padding:2px 8px;border-radius:var(--radius-small)}
+}
+#nav{position:fixed;left:50%;top:calc(50% + 21px);transform:translate(-50%,-50%);
   z-index:100;display:flex;flex-direction:column;align-items:center;gap:8px}
-#bar{display:flex;align-items:center;gap:12px;
-  background:var(--chalk);border:1px solid var(--gallery-plate);
-  border-radius:var(--radius-full);padding:10px 16px}
-#bar .marca{font-size:16px;letter-spacing:-0.03em;line-height:1.05}
 
 #acciones{display:flex;align-items:center;gap:8px}
 button{font:inherit;cursor:pointer;border-radius:var(--radius-full);
@@ -107,8 +135,6 @@ button{font:inherit;cursor:pointer;border-radius:var(--radius-full);
 #c1{bottom:20px;left:20px;max-width:230px;opacity:.6}
 #c2{bottom:20px;right:20px;text-align:right}
 #c2 div{opacity:.6}
-#contador{position:fixed;top:20px;left:50%;transform:translateX(-50%);z-index:90;
-  font-size:12px;letter-spacing:-0.04em;opacity:.5}
 
 /* ── PANEL INVERSO (el unico momento de peso del sistema) ── */
 #info{position:fixed;inset:0;z-index:200;background:var(--carbon);
@@ -157,10 +183,15 @@ button{font:inherit;cursor:pointer;border-radius:var(--radius-full);
 }
 @media(prefers-reduced-motion:reduce){ #info .flot .h{animation:none!important} }
 
+/* Circulo con una x. Ancho y alto iguales y el glifo centrado con flex:
+   con padding no quedaba a plomo, porque la x no tiene la misma altura
+   optica que una mayuscula. */
 #cerrar{position:fixed;top:21px;right:21px;z-index:210;
+  width:38px;height:38px;padding:0;
+  display:flex;align-items:center;justify-content:center;
   background:var(--voltage-lime);color:var(--carbon);border:0;
-  border-radius:var(--radius-full);padding:10px 21px;
-  font-size:var(--fib-13);letter-spacing:-0.02em;line-height:1;
+  border-radius:var(--radius-full);
+  font-size:22px;line-height:1;letter-spacing:0;
   font-family:inherit;font-weight:400;cursor:pointer;
   -webkit-appearance:none;appearance:none}
 #cerrar:hover{background:#d7f95e}
@@ -287,8 +318,9 @@ button{font:inherit;cursor:pointer;border-radius:var(--radius-full);
   .obj{animation:none!important}
 }
 @media(max-width:760px){
-  #bar{padding:8px 12px;gap:8px}
-  #bar .marca{font-size:14px}
+  #titulo{padding:0 13px;bottom:calc(50% + 16px)}
+  #titulo .marca{font-size:clamp(19px, 5.6vw, 27px)}
+  #nav{top:calc(50% + 16px)}
   #c1,#c2{display:none}
   #info .wrap{padding:55px 21px 89px}
 }
@@ -300,12 +332,12 @@ button{font:inherit;cursor:pointer;border-radius:var(--radius-full);
 
 <div class="tag" id="t1">ESPOL · CIBE · Micotectura</div>
 <div class="tag" id="t2">Guayaquil, Ecuador</div>
-<div id="contador">01 / 24</div>
+
+<div id="titulo">
+  <span class="marca">Hongos del bosque seco tropical de Guayaquil</span>
+</div>
 
 <nav id="nav">
-  <div id="bar">
-    <span class="marca">Hongos del Bosque Seco</span>
-  </div>
   <div id="acciones">
     <button class="pill-lime" id="bEntrar">Entrar al mapa</button>
     <button class="pill-neutral" id="bInfo">Info</button>
@@ -318,7 +350,7 @@ button{font:inherit;cursor:pointer;border-radius:var(--radius-full);
 </div>
 
 <div id="info">
-  <button id="cerrar">Cerrar</button>
+  <button id="cerrar" aria-label="Cerrar la información" title="Cerrar">&times;</button>
   <div class="wrap">
     <div class="hero">
       <div class="hero-txt">
@@ -447,19 +479,19 @@ button{font:inherit;cursor:pointer;border-radius:var(--radius-full);
 const OBJ=[
   {f:'pycnoporus',    n:'Pycnoporus sanguineus',   x: 6,y:10,w:17,r:-8,  d:-12},
   {f:'hygrocybe',     n:'Hygrocybe miniata',       x:23,y: 2,w: 9,r: 6,  d: 10},
-  {f:'trametes',      n:'Trametes versicolor',     x:36,y:11,w:16,r:-4,  d:-9},
-  {f:'cookeina',      n:'Cookeina tricoloma',      x:56,y: 4,w: 9,r: 10, d: 12},
+  {f:'trametes',      n:'Trametes versicolor',     x:36,y:11,w:16,r:-4,  d: -9},
+  {f:'cookeina',      n:'Cookeina tricoloma',      x:56,y: 4,w: 9,r:10, d: 12},
   {f:'phillipsia',    n:'Phillipsia domingensis',  x:68,y:12,w:13,r:-7,  d:-11},
-  {f:'xylaria',       n:'Xylaria hypoxylon',       x:85,y: 3,w: 9,r: 5,  d: 9},
+  {f:'xylaria',       n:'Xylaria hypoxylon',       x:85,y: 3,w: 9,r: 5,  d:  9},
   {f:'hexagonia',     n:'Hexagonia hydnoides',     x:-3,y:38,w:16,r: 7,  d: 11},
   {f:'tremella',      n:'Tremella encephala',      x:16,y:52,w:14,r:-6,  d:-10},
-  {f:'cyathus',       n:'Cyathus striatus',        x:33,y:44,w: 7,r: 12, d: 13},
+  {f:'cyathus',       n:'Cyathus striatus',        x:33,y:44,w: 7,r:12, d: 13},
   {f:'trogia',        n:'Trogia cantharelloides',  x:62,y:46,w: 8,r:-10, d:-12},
   {f:'auricularia',   n:'Auricularia mesentérica', x:76,y:40,w:15,r: 5,  d: 10},
-  {f:'marasmius',     n:'Marasmius rotula',        x:91,y:52,w: 6,r:-8,  d:-9},
+  {f:'marasmius',     n:'Marasmius rotula',        x:91,y:52,w: 6,r:-8,  d: -9},
   {f:'leucocoprinus', n:'Leucocoprinus cretaceus', x: 8,y:73,w:10,r: 4,  d: 10},
   {f:'dacryopinax',   n:'Dacryopinax elegans',     x:28,y:80,w: 9,r:-9,  d:-11},
-  {f:'hexagonia2',    n:'Hexagonia tenuis',        x:52,y:76,w:14,r: 8,  d: 12},
+  {f:'hexagonia2',    n:'Hexagonia tenuis',        x:46,y:76,w:14,r: 8,  d: 12},
   {f:'mycena',        n:'Mycena polyadelpha',      x:80,y:74,w: 9,r:-5,  d:-10},
 ];
 
@@ -483,6 +515,9 @@ const plate=document.getElementById('plate');
 OBJ.forEach((o,i)=>{
   const d=document.createElement('div');
   d.className='obj'+(o.y<12?' bajo':'');
+  /* los de arriba llevan el nombre abajo por fuerza: si no, se sale
+     del viewport. Se anota para que el recalculo no lo pise. */
+  d.dataset.bajoFijo = o.y<12 ? '1' : '';
   d.style.left=o.x+'%'; d.style.top=o.y+'%'; d.style.width=o.w+'vw';
   d.style.setProperty('--r',o.r+'deg');
   d.style.setProperty('--d',(o.d*2.4).toFixed(0)+'px');
@@ -496,12 +531,35 @@ OBJ.forEach((o,i)=>{
   plate.appendChild(d);
 });
 
-/* contador que sigue al cursor sobre los objetos */
-const cont=document.getElementById('contador');
-document.querySelectorAll('.obj').forEach((el,i)=>{
-  el.addEventListener('mouseenter',()=>cont.textContent=String(i+1).padStart(2,'0')+' / 24');
-  el.addEventListener('mouseleave',()=>cont.textContent='01 / 24');
-});
+/* ── Donde va el nombre de cada ejemplar ──
+   La etiqueta sale por encima del hongo, y a los que quedan justo
+   debajo del titulo se les colaba dentro: el titulo va en z-index 100 y
+   la tapaba. En vez de fijar posiciones a mano, se compara la caja que
+   ocuparia el nombre arriba con la del titulo y, si se cruzan, la
+   etiqueta pasa debajo del ejemplar. Se reevalua al cambiar el tamano
+   de la ventana, porque el titulo se reparte en una o dos lineas. ── */
+function colocarNombres(){
+  const t=document.getElementById('titulo');
+  if(!t) return;
+  const rt=t.getBoundingClientRect();
+  document.querySelectorAll('#plate .obj').forEach(el=>{
+    const nm=el.querySelector('.nombre');
+    if(!nm){ return; }
+    const r=el.getBoundingClientRect();
+    const w=nm.offsetWidth, h=nm.offsetHeight||24;
+    /* .nombre va en top:-30px con translateX(-50%): esa es la caja
+       que ocuparia si se quedara arriba */
+    const cx=r.left+r.width/2;
+    const caja={left:cx-w/2, right:cx+w/2, top:r.top-30-h/2, bottom:r.top-30+h/2};
+    const cruza = caja.left<rt.right && rt.left<caja.right
+               && caja.top<rt.bottom && rt.top<caja.bottom;
+    el.classList.toggle('bajo', el.dataset.bajoFijo==='1' || cruza);
+  });
+}
+colocarNombres();
+addEventListener('resize',colocarNombres);
+/* el titulo puede recomponerse cuando termina de cargar Roboto */
+if(document.fonts&&document.fonts.ready) document.fonts.ready.then(colocarNombres);
 
 /* ── Ejemplares flotando en el panel de info.
    Solo los recortes que separan limpio y que se leen sobre negro.

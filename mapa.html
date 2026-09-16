@@ -466,6 +466,11 @@ map.getContainer().addEventListener('wheel', ev=>{
   }
 }, {passive:false});
 
+/* Las guias van en su pane, por DEBAJO del de marcadores (z 600), para
+   que el hongo las tape y no se lean como un grafico propio. */
+map.createPane('guias');
+map.getPane('guias').style.zIndex = 450;
+map.getPane('guias').style.pointerEvents = 'none';
 const gGuia=L.layerGroup().addTo(map);
 const gExt=L.layerGroup().addTo(map);  /* recuadros de extension */
 let verExt=false;
@@ -737,9 +742,29 @@ function pintarEspecies(){
    y se dibuja una linea al punto real. Las coordenadas de los datos y de
    las exportaciones NO se modifican.
    ═══════════════════════════════════════════════════════════════════ */
+/* Centro visible de cada icono, medido sobre el alfa del PNG y
+   normalizado dentro de su caja: [cx, cy] con 0,0 arriba-izquierda.
+   Hace falta porque el icono es un cuadrado con mucho vacio y su
+   anclaje esta en la base-centro (0.5, 1.0): la guia terminaba ahi, o
+   sea por debajo del hongo, y parecia no apuntar a nada. El desvio no
+   es pequeno — en Marasmius rotula el cuerpo esta a 0.2 de altura, a
+   cuatro quintos de caja del anclaje. */
+const CENTRO_ICONO={'ic_01.png':[0.461,0.394], 'ic_02.png':[0.5,0.5], 'ic_03.png':[0.487,0.392], 'ic_04.png':[0.493,0.567], 'ic_05.png':[0.46,0.526], 'ic_06.png':[0.5,0.5], 'ic_07.png':[0.487,0.507], 'ic_08.png':[0.5,0.5], 'ic_09.png':[0.514,0.516], 'ic_10.png':[0.497,0.507], 'ic_11.png':[0.483,0.451], 'ic_12.png':[0.492,0.342], 'ic_13.png':[0.507,0.383], 'ic_14.png':[0.491,0.311], 'ic_15.png':[0.498,0.199], 'ic_16.png':[0.582,0.504], 'ic_17.png':[0.5,0.5], 'ic_18.png':[0.496,0.504], 'ic_20.png':[0.497,0.509], 'ic_21.png':[0.475,0.377], 'ic_22.png':[0.424,0.468], 'ic_23.png':[0.5,0.5], 'ic_24.png':[0.508,0.499], 'ic_sinfoto.png':[0.501,0.501]};
+
+/* Umbral a partir del cual tiene sentido ensenar las guias: son una
+   ayuda para cuando ya se esta leyendo la zona de cerca. En el plano
+   general no se dibujan, para no ensuciarlo con lineas. */
+const ZOOM_GUIAS=16;
+function opacidadGuia(z){
+  /* sube despacio desde el umbral; nunca llega a ser un trazo firme */
+  return Math.max(0, Math.min(.34, (z-ZOOM_GUIAS)*0.12 + 0.12));
+}
 function desplegar(){
   if(typeof _enZoom!=='undefined' && _enZoom) return;
   gGuia.clearLayers();
+  const z=map.getZoom();
+  const verGuias = z>=ZOOM_GUIAS;
+  const op=opacidadGuia(z);
   const grupos={};
   PUNTOS.forEach(o=>{
     const k=o.r.lat.toFixed(5)+','+o.r.lon.toFixed(5);
@@ -755,13 +780,20 @@ function desplegar(){
       const p=L.point(base.x+R*Math.cos(a), base.y+R*Math.sin(a));
       const ll=map.layerPointToLatLng(p);
       o.m.setLatLng(ll);
-      gGuia.addLayer(L.polyline([[o.r.lat,o.r.lon],ll],
-        {color:'#fff',weight:1,opacity:.5,interactive:false}));
+      if(!verGuias) return;
+      /* la guia no acaba en el anclaje sino en el cuerpo del hongo */
+      const c=CENTRO_ICONO[o.e.icono] || [0.5,0.5];
+      const pc=L.point(p.x+(c[0]-0.5)*TAM, p.y-(1-c[1])*TAM);
+      gGuia.addLayer(L.polyline([[o.r.lat,o.r.lon],map.layerPointToLatLng(pc)],
+        {pane:'guias',color:'#fff',weight:1,opacity:op,interactive:false}));
     });
-    gGuia.addLayer(L.circleMarker([g[0].r.lat,g[0].r.lon],
-      {radius:2.5,color:'#fff',weight:1,fillColor:'#fff',fillOpacity:.9,interactive:false}));
+    if(verGuias)
+      gGuia.addLayer(L.circleMarker([g[0].r.lat,g[0].r.lon],
+        {pane:'guias',radius:2,color:'#fff',weight:0,
+         fillColor:'#fff',fillOpacity:Math.min(.6,op*1.8),interactive:false}));
   });
 }
+
 /* Durante el zoom los marcadores vuelven a su coordenada real para que
    escalen junto con el mapa; el abanico se rehace al terminar. Si no,
    quedan en offsets calculados para el zoom anterior y se ven derivar. */
