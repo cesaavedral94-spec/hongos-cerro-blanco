@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Hongos del bosque seco tropical de Guayaquil · Carlos Saavedra</title>
+<style>
+:root{--carbon:#000;--plate:#e5e7eb;--chalk:#f4f4f4;--white:#fff;--lime:#e2ff70;--grey:#6b6b6b;--k:1;
+  --ease:cubic-bezier(.22,1,.36,1)}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:#d4d4d4;color:var(--carbon);overflow:hidden;
+  font-family:"Neue Haas Grotesk Display Pro","Neue Haas Grotesk Text Pro","NHaasGroteskDSPro-55Rg","Neue Haas Grotesk","Haas Grotesk","Helvetica Neue",Helvetica,Arial,sans-serif;letter-spacing:-0.02em}
+a{color:inherit;text-decoration:none}
+
+/* ── PRESENTACION: cada slide ocupa la pantalla y se recorre de arriba abajo ── */
+#deck{position:fixed;left:0;right:0;top:0;bottom:0;overflow:auto;overscroll-behavior:contain;touch-action:pan-x pan-y}
+#pages{display:flex;flex-direction:column;align-items:center;gap:28px;padding:28px 40px 60px;width:max-content;min-width:100%}
+.slide{width:var(--pw);height:calc(var(--pw) * 9 / 16);flex:none;position:relative;overflow:hidden;background:#fff;
+  box-shadow:0 1px 2px rgba(0,0,0,.18),0 6px 22px rgba(0,0,0,.14)}
+.stage{position:absolute;left:0;top:0;width:1600px;height:900px;transform:scale(var(--k));transform-origin:0 0}
+
+/* aparicion al entrar a la slide */
+.rv{opacity:0;transform:translateY(28px);transition:opacity .9s var(--ease),transform 1.1s var(--ease)}
+.slide.on .rv{opacity:1;transform:none}
+.slide.on .rv.d1{transition-delay:.12s}.slide.on .rv.d2{transition-delay:.24s}
+.slide.on .rv.d3{transition-delay:.36s}.slide.on .rv.d4{transition-delay:.48s}
+
+/* ── HONGOS FLOTANTES (mismo sistema que index.html del sitio) ── */
+.obj{position:absolute;cursor:pointer;opacity:0;transform:translateY(40px) scale(.94);
+  transition:opacity 1s var(--ease),transform 1.2s var(--ease)}
+.slide.on .obj{opacity:1;transform:none}
+.obj .dr{width:100%;height:100%;animation:drift var(--dur,15s) ease-in-out var(--del,0s) infinite}
+.obj img{display:block;width:100%;height:100%;object-fit:contain;transition:transform .35s var(--ease);
+  -webkit-user-drag:none;user-select:none}
+.obj:hover{z-index:60!important}
+.obj:hover .dr{animation-play-state:paused}
+.obj:hover img{transform:scale(1.07)}
+@keyframes drift{
+  0%,100%{transform:translate(0,0) rotate(var(--r,0deg))}
+  33%{transform:translate(var(--dx,6px),var(--d,-26px)) rotate(calc(var(--r,0deg) + var(--rb,2deg)))}
+  66%{transform:translate(calc(var(--dx,6px) * -1),calc(var(--d,-26px) * -0.45)) rotate(calc(var(--r,0deg) - var(--rb,2deg)))}}
+.nombre{position:absolute;left:50%;top:-34px;transform:translateX(-50%);background:var(--carbon);color:#fff;
+  font-size:15px;letter-spacing:-0.03em;line-height:1;padding:7px 12px;border-radius:999px;white-space:nowrap;
+  font-style:italic;opacity:0;transition:opacity .18s;pointer-events:none}
+.obj.bajo .nombre{top:auto;bottom:-34px}
+.obj:hover .nombre{opacity:1}
+
+/* logos */
+.logos{position:absolute;inset:0;z-index:50;pointer-events:none}
+.logos img{position:absolute;filter:drop-shadow(0 0 10px #fff) drop-shadow(0 0 14px #fff)}
+.logos .vl{position:absolute;width:1.4px;background:#000}
+
+/* ── TITULO EN CAJAS (como el logo) ── */
+.tit{position:absolute;left:0;right:0;top:300px;z-index:80;display:flex;flex-direction:column;align-items:center;gap:14px}
+.tbox{background:#000;color:#fff;font-size:104px;line-height:1.24;padding:0 30px;letter-spacing:-0.035em;
+  white-space:nowrap;transition:background .25s,color .25s}
+.tit a:hover .tbox{background:var(--lime);color:#000}
+.esq{position:absolute;z-index:85;font-size:15px;letter-spacing:-0.03em;line-height:1.3;
+  paint-order:stroke fill;-webkit-text-stroke:5px #fff}
+.esq span{-webkit-text-stroke:0}
+
+/* ── STATEMENT ── */
+.stmt{position:absolute;left:108px;top:150px;width:1380px;font-size:100px;line-height:1.08;letter-spacing:-0.04em}
+.stmt .w{display:inline-block;opacity:0;transform:translateY(.4em);transition:opacity .7s var(--ease),transform .9s var(--ease)}
+.slide.on .stmt .w{opacity:1;transform:none}
+.bar{position:absolute;left:108px;top:642px;height:11px;width:0;background:var(--lime);transition:width 1.2s var(--ease) .9s}
+.slide.on .bar{width:108px}
+.cap{position:absolute;left:108px;top:678px;width:940px;font-size:21px;line-height:1.35;color:var(--grey)}
+
+/* ── CABECERA DE SLIDES ── */
+.h1{position:absolute;left:54px;top:34px;font-size:34px;font-weight:500;letter-spacing:-0.03em}
+.hd{position:absolute;left:648px;top:40px;width:900px;font-size:19px;line-height:1.35;color:var(--grey)}
+.hint{position:absolute;left:54px;bottom:26px;font-size:15px;color:var(--grey)}
+
+/* ── CUADRICULA DE CAPTURAS ── */
+.grid{position:absolute;inset:0}
+.card{position:absolute;cursor:zoom-in;outline:1px solid #d9d9d9;background:#fff;
+  transition:transform .55s var(--ease),box-shadow .55s var(--ease),opacity .4s;opacity:0}
+.slide.on .card{opacity:1}
+.card img{display:block;width:100%;height:100%;object-fit:cover}
+.card .lg{position:absolute;left:8px;right:8px;bottom:8px;display:flex;justify-content:center;opacity:0;transition:opacity .25s .1s}
+.card .lg span{background:#000;color:#fff;font-size:7.4px;line-height:1.2;padding:4px 7px;border-radius:999px;text-align:center}
+.card:hover{transform:scale(var(--hz,2.15));z-index:20;box-shadow:0 12px 36px rgba(0,0,0,.22);outline-color:#000}
+.card:hover .lg{opacity:1}
+.grid:hover .card:not(:hover){opacity:.35}
+
+/* ── MAPAS BASE ── */
+.strips{position:absolute;left:54px;right:54px;top:138px;height:690px;display:flex;gap:30px}
+.strip{flex:1;position:relative;transition:flex .7s var(--ease);cursor:zoom-in;min-width:0}
+.strip .im{height:648px;outline:1px solid #d9d9d9;overflow:hidden}
+.strip img{width:100%;height:100%;object-fit:cover;object-position:60% 50%;transition:transform .9s var(--ease)}
+.strip .t{margin-top:16px;font-size:22px;font-weight:500;white-space:nowrap}
+.strips:hover .strip{flex:.75}
+.strips .strip:hover{flex:2.2}
+.strip:hover img{transform:scale(1.04)}
+
+/* ── PALETA ── */
+.pal{position:absolute;left:54px;right:54px;top:210px;display:flex}
+.sw{flex:1;position:relative;cursor:copy}
+.sw .box{height:360px;display:flex;align-items:flex-end;justify-content:center}
+.sw .m{transition:transform .5s var(--ease);
+  -webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-size:contain;mask-size:contain;
+  -webkit-mask-position:center bottom;mask-position:center bottom}
+.sw .ol{filter:drop-shadow(0 0 .7px #8a8a8a) drop-shadow(0 0 .7px #8a8a8a)}
+.sw .fl{animation:drift var(--dur,16s) ease-in-out var(--del,0s) infinite;--d:-14px;--dx:5px;--r:0deg}
+.sw:hover .fl{animation-play-state:paused}
+.sw:hover .m{transform:scale(1.14) translateY(-10px)}
+.sw .nm{margin-top:34px;font-size:23px;font-weight:500}
+.sw .hx{font-size:18px;margin-top:4px;font-variant-numeric:tabular-nums}
+.sw .us{font-size:16px;color:var(--grey);margin-top:4px}
+.sw .ok{position:absolute;left:50%;top:150px;transform:translate(-50%,8px);background:#000;color:#fff;font-size:15px;
+  padding:7px 12px;border-radius:999px;opacity:0;transition:opacity .2s,transform .3s var(--ease);pointer-events:none;white-space:nowrap}
+.sw:hover .ok{opacity:1;transform:translate(-50%,0)}
+
+/* ── FLUJO ── */
+#flow{position:absolute;left:144px;top:118px;width:1312px;height:738px;overflow:visible}
+#flow text{font-family:"Neue Haas Grotesk Display Pro","Neue Haas Grotesk Text Pro","NHaasGroteskDSPro-55Rg","Neue Haas Grotesk","Haas Grotesk","Helvetica Neue",Helvetica,Arial,sans-serif;font-size:22px;fill:#111;letter-spacing:-0.3px}
+#flow .lb{paint-order:stroke;stroke:#fff;stroke-width:9px;stroke-linejoin:round}
+#flow .g{fill:#8a8a8a;font-size:18px}
+#flow .nd{cursor:pointer}
+#flow .nd .sh{transition:transform .35s var(--ease);transform-box:fill-box;transform-origin:center}
+#flow .nd.act .sh{transform:scale(1.35)}
+#flow .nd.act polygon.sh,#flow .nd.act rect.sh{fill:var(--lime)}
+#flow polyline{fill:none;stroke:#111;stroke-width:1.6;transition:stroke .2s,stroke-width .2s}
+#flow polyline.dash{stroke-dasharray:7 6}
+#flow polyline.hl{stroke-width:2.6}
+#prev{position:absolute;z-index:90;width:420px;pointer-events:none;opacity:0;transform:translateY(10px) scale(.96);
+  transition:opacity .25s,transform .35s var(--ease)}
+#prev.on{opacity:1;transform:none}
+#prev .im{background:#fff;outline:1px solid #000;box-shadow:0 14px 40px rgba(0,0,0,.2)}
+#prev img{display:block;width:100%}
+#prev .c{margin-top:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+#prev .c b{background:#000;color:#fff;font-weight:400;font-size:15px;padding:7px 12px;border-radius:999px}
+#prev .c i{font-style:normal;font-size:14px;background:var(--lime);padding:7px 12px;border-radius:999px}
+
+
+
+/* ── FICHA TECNICA (cajetin de plano) ── */
+.caj{position:absolute;left:54px;right:54px;top:138px;display:grid;grid-template-columns:repeat(6,1fr);
+  grid-template-rows:150px 170px 132px 112px;border:2.4px solid #000;background:#000;gap:1px}
+.cl{background:#fff;padding:16px 18px;position:relative;transition:background .25s}
+.cl:hover{background:#fbffe6}
+.cl .lb{font-size:12.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--grey);margin-bottom:10px;display:flex;justify-content:space-between}
+.cl .lb i{font-style:normal;color:#b5b5b5}
+.cl .v{font-size:21px;line-height:1.28;letter-spacing:-0.02em}
+.cl .v.xl{font-size:44px;line-height:1.02;letter-spacing:-0.035em}
+.cl .v small{display:block;font-size:16px;color:var(--grey);margin-top:6px}
+.cl ul{list-style:none;display:grid;grid-template-columns:repeat(5,1fr);gap:0 26px}.cl li{font-size:19px;line-height:1.42}
+.cl li{border-top:1px solid #000;padding-top:10px;font-size:20px;line-height:1.25}
+.cl .sws{display:flex;gap:6px;margin-top:4px}.cl .sws b{width:26px;height:26px;outline:1px solid #9a9a9a}
+.cl a:hover{text-decoration:underline}
+.tick{position:absolute;width:18px;height:18px;border:0 solid #000}
+
+/* ── FUNCIONES ── */
+.fx{position:absolute;left:54px;top:118px;width:720px}
+.fr{display:flex;gap:18px;align-items:flex-start;padding:13px 14px;margin-left:-14px;border-radius:10px;cursor:default;
+  transition:background .25s}
+.fr svg{flex:none;margin-top:2px}
+.fr polygon{fill:#fff;stroke:#111;stroke-width:1.6;transition:fill .25s}
+.fr.on polygon{fill:var(--lime)}
+.fr.on{background:#f6f6f6}
+.fr b{display:block;font-weight:500;font-size:25px;letter-spacing:-0.03em}
+.fr span{display:block;font-size:17px;color:var(--grey);margin-top:3px;line-height:1.3}
+.fxp{position:absolute;left:820px;top:170px;width:726px}
+.fxp .im{outline:1px solid #000;box-shadow:0 14px 40px rgba(0,0,0,.16);background:#fff;aspect-ratio:1527/789;overflow:hidden}
+.fxp img{display:block;width:100%;height:100%;object-fit:cover;object-position:50% 0;transition:opacity .25s}
+.fxp .c{margin-top:14px;display:inline-block;background:#000;color:#fff;font-size:16px;padding:7px 13px;border-radius:999px}
+
+/* cierre */
+.ver{position:absolute;left:552px;width:498px;top:806px;text-align:center;font-size:20px;z-index:85;
+  paint-order:stroke fill;-webkit-text-stroke:6px #fff}
+.ver:hover{text-decoration:underline}
+
+/* ── NAVEGACION ── */
+
+/* ── VISOR DE SECCION (presentacion vertical dentro de la presentacion) ── */
+#viewer{position:fixed;inset:0;z-index:300;background:rgba(255,255,255,.97);opacity:0;pointer-events:none;
+  transition:opacity .35s}
+#viewer.on{opacity:1;pointer-events:auto}
+#vlist{height:100%;overflow-y:auto;scroll-snap-type:y mandatory;scroll-behavior:smooth}
+#vlist::-webkit-scrollbar{display:none}
+.vs{height:100vh;scroll-snap-align:start;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:40px}
+.vs img{max-width:88vw;max-height:76vh;outline:1px solid #000;box-shadow:0 20px 60px rgba(0,0,0,.18);
+  opacity:0;transform:translateY(30px) scale(.97);transition:opacity .6s,transform .8s var(--ease)}
+.vs.on img{opacity:1;transform:none}
+.vs .vc{display:flex;gap:10px;align-items:center;font-size:17px}
+.vs .vc b{font-weight:400;background:#000;color:#fff;padding:7px 13px;border-radius:999px}
+.vs .vc span{color:var(--grey);font-variant-numeric:tabular-nums}
+#vclose{position:fixed;top:20px;right:20px;width:42px;height:42px;border-radius:50%;border:0;background:var(--lime);
+  font-size:22px;cursor:pointer;z-index:310}
+#vhint{position:fixed;left:24px;top:24px;font-size:15px;color:var(--grey);z-index:310}
+#vdots{position:fixed;right:30px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:9px;z-index:310}
+#vdots i{width:7px;height:7px;border-radius:50%;background:#cfcfcf;transition:background .2s,transform .2s}
+#vdots i.on{background:#000;transform:scale(1.3)}
+
+#scrollhint{position:absolute;left:50%;bottom:34px;transform:translateX(-50%);font-size:15px;color:var(--grey);z-index:90;
+  animation:bob 2.2s ease-in-out infinite}
+@keyframes bob{0%,100%{transform:translate(-50%,0)}50%{transform:translate(-50%,8px)}}
+@media (prefers-reduced-motion:reduce){.obj .dr,.sw .fl{animation:none}#deck,#vlist{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+
+<main id="deck"><div id="pages"></div></main>
+
+<div id="viewer" role="dialog" aria-modal="true" aria-label="Sección">
+  <div id="vhint">Desplázate ↑ ↓ · Esc para cerrar</div>
+  <button id="vclose" aria-label="Cerrar">×</button>
+  <div id="vdots"></div>
+  <div id="vlist"></div>
+</div>
+
+<script>
+const DATA={"L": [[{"f": "hygrocybe", "n": "Hygrocybe miniata", "l": 62.0, "t": -14.8, "w": 180.0, "h": 328.3, "r": 6, "z": 10, "bajo": 1}, {"f": "trogia2", "n": "Trogia cantharelloides", "l": 414.0, "t": 62.6, "w": 180.0, "h": 184.4, "r": -7, "z": 11, "bajo": 0}, {"f": "xylaria", "n": "Xylaria hypoxylon", "l": 766.0, "t": -26.6, "w": 180.0, "h": 356.2, "r": -6, "z": 12, "bajo": 1}, {"f": "cyathus3", "n": "Cyathus striatus", "l": 1092.0, "t": 55.1, "w": 280.0, "h": 79.1, "r": 8, "z": 13, "bajo": 1}, {"f": "tremella", "n": "Tremella encephala", "l": -98.0, "t": 322.4, "w": 340.0, "h": 286.0, "r": 7, "z": 14, "bajo": 0}, {"f": "dacryopinax", "n": "Dacryopinax elegans", "l": 736.0, "t": 515.5, "w": 160.0, "h": 244.8, "r": 10, "z": 15, "bajo": 0}, {"f": "marasmius", "n": "Marasmius rotula", "l": 1410.0, "t": 276.0, "w": 140.0, "h": 390.0, "r": -8, "z": 10, "bajo": 0}, {"f": "cyathus", "n": "Cyathus striatus", "l": 206.0, "t": 594.5, "w": 180.0, "h": 265.2, "r": 12, "z": 11, "bajo": 0}, {"f": "cookeina", "n": "Cookeina tricoloma", "l": 638.0, "t": 630.0, "w": 180.0, "h": 270.0, "r": -10, "z": 12, "bajo": 0}, {"f": "podoscypha", "n": "Podoscypha petalodes", "l": 1142.0, "t": 552.4, "w": 260.0, "h": 415.9, "r": -6, "z": 13, "bajo": 0}], [{"f": "pycnoporus", "n": "Pycnoporus sanguineus", "l": 62.0, "t": 66.4, "w": 340.0, "h": 236.2, "r": -8, "z": 10, "bajo": 0}, {"f": "trametes", "n": "Trametes versicolor", "l": 544.0, "t": 77.0, "w": 320.0, "h": 220.0, "r": -4, "z": 11, "bajo": 0}, {"f": "phillipsia", "n": "Phillipsia domingensis", "l": 1062.0, "t": 84.6, "w": 260.0, "h": 234.5, "r": -7, "z": 12, "bajo": 0}, {"f": "hexagonia", "n": "Hexagonia hydnoides", "l": -80.0, "t": 319.4, "w": 320.0, "h": 225.7, "r": 7, "z": 13, "bajo": 0}, {"f": "tremellaf", "n": "Tremella fuciformis", "l": 326.0, "t": 409.6, "w": 260.0, "h": 133.8, "r": -6, "z": 14, "bajo": 0}, {"f": "auricularia", "n": "Auricularia mesentérica", "l": 1186.0, "t": 339.3, "w": 300.0, "h": 207.3, "r": 5, "z": 15, "bajo": 0}, {"f": "leucocoprinus", "n": "Leucocoprinus cretaceus", "l": 142.0, "t": 588.1, "w": 180.0, "h": 329.4, "r": 4, "z": 10, "bajo": 0}, {"f": "hexagonia2", "n": "Hexagonia tenuis", "l": 708.0, "t": 645.1, "w": 280.0, "h": 208.7, "r": 8, "z": 11, "bajo": 0}, {"f": "mycena", "n": "Mycena polyadelpha", "l": 1262.0, "t": 596.6, "w": 180.0, "h": 333.8, "r": -5, "z": 12, "bajo": 0}], [{"f": "trametes2", "n": "Trametes versicolor", "l": 16.0, "t": 33.7, "w": 320.0, "h": 202.8, "r": -8, "z": 10, "bajo": 1}, {"f": "trogia", "n": "Trogia cantharelloides", "l": 400.0, "t": -21.0, "w": 160.0, "h": 300.2, "r": 6, "z": 11, "bajo": 1}, {"f": "phillipsia2", "n": "Phillipsia domingensis", "l": 634.0, "t": 48.4, "w": 220.0, "h": 235.8, "r": -4, "z": 12, "bajo": 1}, {"f": "cyathus2", "n": "Cyathus striatus", "l": 944.0, "t": 11.0, "w": 160.0, "h": 160.0, "r": 10, "z": 13, "bajo": 1}, {"f": "pycnoporus2", "n": "Pycnoporus sanguineus", "l": 1154.0, "t": 72.2, "w": 300.0, "h": 178.3, "r": -7, "z": 14, "bajo": 0}, {"f": "hexagonia_b", "n": "Hexagonia hydnoides", "l": -76.0, "t": 339.6, "w": 280.0, "h": 203.7, "r": 7, "z": 15, "bajo": 0}, {"f": "trogia3", "n": "Trogia cantharelloides", "l": 1316.0, "t": 395.2, "w": 280.0, "h": 97.9, "r": -10, "z": 10, "bajo": 0}, {"f": "hygrocybe2", "n": "Hygrocybe miniata", "l": 120.0, "t": 617.5, "w": 240.0, "h": 215.2, "r": 5, "z": 11, "bajo": 0}, {"f": "cookeina2", "n": "Cookeina tricoloma", "l": 1056.0, "t": 596.7, "w": 160.0, "h": 243.0, "r": -8, "z": 12, "bajo": 0}, {"f": "hexagonia2_b", "n": "Hexagonia tenuis", "l": 1252.0, "t": 637.5, "w": 280.0, "h": 195.2, "r": 6, "z": 13, "bajo": 0}]], "cap": {"01_portada": "Portada · collage flotante: cada hongo es un enlace", "zoom_hygrocybe": "Hover · nombre con flecha; el clic abre la ficha", "02_info_hero": "Panel Info · lectura vertical a sangre sobre negro", "03_el_proyecto": "Panel Info · bloque de texto con foto a la derecha", "04_la_data_hover": "Retícula de cuadros · fotos enlazadas con hover", "05_la_data_b": "Panel Info · retícula de cuadros grandes", "06_areas": "Panel Info · lista en filas con líneas finas", "07_metodologia": "Panel Info · texto con foto de laboratorio", "08_filos_creditos": "Panel Info · etiquetas en píldora y tabla de créditos", "09_creditos_b": "Panel Info · créditos en dos columnas", "10_nota_firma": "Panel Info · cierre con sello y firma", "11_mapa_prosperina": "Saltos · botón Prosperina", "12_mapa_cerroblanco": "Saltos · botón Cerro Blanco", "13_mapa_todo": "Mapa · visor satelital con barra lateral", "14_ficha_trogia": "Ficha · se abre en la barra lateral", "15_registro_popup": "Registro · popup sobre el punto exacto", "16_capas_topo": "Capas · mapa base y capas activables", "17_datos": "Pestaña Datos · tabla de sitios y totales", "18_ficha_phillipsia": "Enlace directo · el mapa abre con la ficha cargada", "19_galeria": "Galería · lightbox con flechas", "20_busqueda": "Buscador · filtra la lista en vivo", "v1_satelite": "Mapa base · Satélite", "v2_topo": "Mapa base · Topográfico", "v3_calles": "Mapa base · Calles", "sidebar_phillipsia": "Barra lateral · ficha completa de la especie", "popup_phillipsia": "Popup · registro de campo sobre el punto exacto", "v4_sat_etq": "Mapa base · Satélite + etiquetas"}, "groups": {"portada": ["01_portada", "zoom_hygrocybe"], "info": ["02_info_hero", "03_el_proyecto", "04_la_data_hover", "05_la_data_b", "06_areas", "07_metodologia", "08_filos_creditos", "09_creditos_b", "10_nota_firma"], "mapa": ["13_mapa_todo", "11_mapa_prosperina", "12_mapa_cerroblanco", "15_registro_popup"], "especies": ["14_ficha_trogia", "20_busqueda", "sidebar_phillipsia", "popup_phillipsia", "18_ficha_phillipsia", "19_galeria", "15_registro_popup"], "capas": ["16_capas_topo", "v1_satelite", "v2_topo", "v3_calles", "v4_sat_etq"], "datos": ["17_datos"], "grid": ["01_portada", "02_info_hero", "04_la_data_hover", "13_mapa_todo", "12_mapa_cerroblanco", "14_ficha_trogia", "sidebar_phillipsia", "popup_phillipsia", "19_galeria", "20_busqueda"]}, "nodes": {"C": {"x": 595, "y": 420, "s": "flor", "lines": ["Portada"], "sub": "index.html", "num": null, "g": "portada", "shot": "01_portada"}, "H1": {"x": 435, "y": 640, "s": "hex", "lines": ["Collage de", "16 hongos"], "sub": null, "num": "1", "g": "portada", "shot": "01_portada"}, "hov": {"x": 265, "y": 800, "s": "sqdot", "lines": ["Hover: nombre →"], "sub": null, "num": null, "g": "portada", "shot": "zoom_hygrocybe"}, "H2": {"x": 315, "y": 320, "s": "hex", "lines": ["Panel de", "información"], "sub": null, "num": "2", "g": "info", "shot": "02_info_hero"}, "H3": {"x": 855, "y": 420, "s": "hex", "lines": ["Mapa"], "sub": "mapa.html", "num": "3", "g": "mapa", "shot": "13_mapa_todo"}, "sal": {"x": 795, "y": 150, "s": "dot", "lines": ["Prosperina · Cerro", "Blanco · Ver todo"], "sub": null, "num": null, "g": "mapa", "shot": "11_mapa_prosperina"}, "H4": {"x": 1085, "y": 290, "s": "hex", "lines": ["Especies"], "sub": null, "num": "4", "g": "especies", "shot": "14_ficha_trogia"}, "bus": {"x": 1085, "y": 95, "s": "sqdot", "lines": ["Buscador"], "sub": null, "num": null, "g": "especies", "shot": "20_busqueda"}, "fic": {"x": 1285, "y": 235, "s": "sq", "lines": ["Ficha de", "especie"], "sub": null, "num": null, "g": "especies", "shot": "sidebar_phillipsia"}, "gal": {"x": 1335, "y": 420, "s": "sqdot", "lines": ["Galería"], "sub": null, "num": null, "g": "especies", "shot": "19_galeria"}, "reg": {"x": 1195, "y": 470, "s": "sqdot", "lines": ["Registro", "de campo"], "sub": null, "num": null, "g": "especies", "shot": "popup_phillipsia"}, "H5": {"x": 1045, "y": 620, "s": "hex", "lines": ["Capas"], "sub": null, "num": "5", "g": "capas", "shot": "16_capas_topo"}, "bas": {"x": 1275, "y": 700, "s": "sq", "lines": ["4 mapas base"], "sub": null, "num": null, "g": "capas", "shot": "v1_satelite"}, "med": {"x": 1135, "y": 810, "s": "sqdot", "lines": ["Medir"], "sub": null, "num": null, "g": "capas", "shot": "16_capas_topo"}, "H6": {"x": 775, "y": 670, "s": "hex", "lines": ["Datos"], "sub": null, "num": "6", "g": "datos", "shot": "17_datos"}, "sit": {"x": 655, "y": 790, "s": "sqdot", "lines": ["Sitios y datos", "globales"], "sub": null, "num": null, "g": "datos", "shot": "17_datos"}}, "edges": [{"a": "C", "b": "H1", "d": false, "k": "v", "lab": null}, {"a": "H1", "b": "hov", "d": false, "k": "l", "lab": null}, {"a": "C", "b": "H2", "d": false, "k": "h", "lab": "Info"}, {"a": "C", "b": "H3", "d": false, "k": "h", "lab": "Entrar al mapa"}, {"a": "H3", "b": "sal", "d": false, "k": "l", "lab": null}, {"a": "H3", "b": "H4", "d": false, "k": "h", "lab": null}, {"a": "H4", "b": "bus", "d": false, "k": "l", "lab": null}, {"a": "H4", "b": "fic", "d": false, "k": "h", "lab": null}, {"a": "fic", "b": "gal", "d": false, "k": "l", "lab": null}, {"a": "fic", "b": "reg", "d": false, "k": "l", "lab": null}, {"a": "H3", "b": "H5", "d": false, "k": "v", "lab": null}, {"a": "H5", "b": "bas", "d": false, "k": "h", "lab": null}, {"a": "H5", "b": "med", "d": false, "k": "l", "lab": null}, {"a": "H3", "b": "H6", "d": false, "k": "v", "lab": null}, {"a": "H6", "b": "sit", "d": false, "k": "l", "lab": null}]};
+const SITE='https://cesaavedral94-spec.github.io/hongos-cerro-blanco/index.html';
+const MAPA='https://cesaavedral94-spec.github.io/hongos-cerro-blanco/mapa.html';
+const S=k=>`img/s/${k}.webp`, Hm=f=>`img/h/${f}.webp`;
+const deck=document.getElementById('deck');
+const el=(t,c,h)=>{const e=document.createElement(t);if(c)e.className=c;if(h!=null)e.innerHTML=h;return e};
+
+const pagesEl=document.getElementById('pages');
+function slide(id){const s=el('section','slide');s.id=id;const st=el('div','stage');s.appendChild(st);pagesEl.appendChild(s);return st}
+
+function hongos(st,list){
+  list.forEach((o,i)=>{
+    const a=el('a','obj'+(o.bajo?' bajo':''));
+    a.href=MAPA+'?sp='+encodeURIComponent(o.n);a.target='_blank';a.rel='noopener';
+    a.setAttribute('aria-label','Ver '+o.n+' en el mapa');
+    Object.assign(a.style,{left:o.l+'px',top:o.t+'px',width:o.w+'px',height:o.h+'px',zIndex:o.z,
+      transitionDelay:(.05*i).toFixed(2)+'s'});
+    const d=el('div','dr');
+    d.style.setProperty('--r',o.r+'deg');
+    d.style.setProperty('--d',((i%2?1:-1)*(10+i%5*3)*2.2).toFixed(0)+'px');
+    d.style.setProperty('--dx',((i%2?1:-1)*(7+i%6))+'px');
+    d.style.setProperty('--rb',((i%3)+1.4).toFixed(1)+'deg');
+    d.style.setProperty('--dur',(13+(i%7)*1.7).toFixed(1)+'s');
+    d.style.setProperty('--del',(i*-1.3).toFixed(1)+'s');
+    d.innerHTML=`<img src="${Hm(o.f)}" alt="${o.n}" draggable="false">`;
+    a.appendChild(d);a.insertAdjacentHTML('beforeend',`<span class="nombre">${o.n} →</span>`);
+    st.appendChild(a);
+  });
+}
+function logos(st){
+  // misma geometria que la portada del .key (pulgadas x 120)
+  const lw=3.559*120,lh=2.3*120,cw=2.6*120,ch=2.172*120,x0=3.037*120;
+  const g=el('div','logos rv');
+  g.innerHTML=`<img src="img/l/logo_saavedra_t.png" alt="Saavedra" style="left:${x0}px;top:${(900-lh)/2}px;width:${lw}px;height:${lh}px">
+   <div class="vl" style="left:${x0+lw+66}px;top:300px;height:300px"></div>
+   <img src="img/l/logo_cibe_t.png" alt="CIBE ESPOL" style="left:${x0+lw+132}px;top:${(900-ch)/2}px;width:${cw}px;height:${ch}px">`;
+  st.appendChild(g);
+}
+
+/* 1 · PORTADA */
+let st=slide('portada');hongos(st,DATA.L[0]);logos(st);
+
+
+/* 2 · TITULO */
+st=slide('titulo');hongos(st,DATA.L[1]);
+st.insertAdjacentHTML('beforeend',`
+ <div class="esq" style="left:36px;top:30px">ESPOL · CIBE · Micotectura</div>
+ <div class="esq" style="right:36px;top:30px">Guayaquil, Ecuador</div>
+ <div class="esq" style="right:36px;bottom:30px;font-size:13.5px">© CIBE · Laboratorio de Biotecnología de la ESPOL</div>
+ <a class="tit rv" href="${SITE}" target="_blank" rel="noopener" title="Abrir la página">
+   <div class="tbox">Hongos del bosque seco</div><div class="tbox">tropical de Guayaquil</div></a>`);
+
+/* 3 · STATEMENT */
+st=slide('statement');
+const frase='El catálogo digital de los hongos encontrados durante expediciones del laboratorio en los bosques protectores Prosperina y Cerro Blanco.';
+st.insertAdjacentHTML('beforeend',`<div class="stmt">${frase.split(' ').map((w,i)=>
+  `<span class="w" style="transition-delay:${(.06*i).toFixed(2)}s">${w}</span>`).join(' ')}</div>
+`);
+
+
+/* 4 · FICHA TECNICA */
+st=slide('ficha-tecnica');
+{st.insertAdjacentHTML('beforeend','<div class="h1 rv">Ficha técnica</div>');
+ const C=[[1,1,4,'Proyecto','<div class="v xl">Hongos del bosque seco tropical de Guayaquil</div>'],
+  [5,1,2,'Cliente','<div class="v">CIBE · Centro de Investigaciones Biotecnológicas del Ecuador<small>ESPOL · Laboratorio de Micotectura</small></div>'],
+  [1,2,3,'Encargo','<div class="v">Convertir los registros y fotos de las expediciones en un catálogo digital que se pueda explorar, buscar y ubicar en el mapa.</div>'],
+  [4,2,1,'Mi rol','<div class="v">Diseño de interfaz<br>Programación<br>Mapa interactivo</div>'],
+  [5,2,2,'Colaboración','<div class="v">Técnicas de investigación del CIBE<small>Dirección científica: Dra. Daynet Sosa del Castillo</small></div>'],
+  [1,3,6,'Entregables','<ul><li>Portada interactiva</li><li>Panel de información</li><li>Mapa con fichas de especie</li><li>Buscador</li><li>Herramientas de campo<br><span style="color:var(--grey);font-size:16px">registrar, medir, revisar zonas</span></li></ul>'],
+  [1,4,1,'Año','<div class="v">2026</div>'],
+  [2,4,1,'Tipografía','<div class="v">Roboto 400</div>'],
+  [3,4,2,'Paleta','<div class="sws"><b style="background:#000"></b><b style="background:#e5e7eb"></b><b style="background:#fff"></b><b style="background:#e2ff70"></b><b style="background:#f4f4f4"></b></div>'],
+  [5,4,2,'Autor','<div class="v">Carlos Saavedra</div>']];
+ const g=el('div','caj rv d1');
+ C.forEach(([c,r,sp,lb,h],i)=>{const d=el('div','cl');d.style.gridColumn=c+' / span '+sp;d.style.gridRow=r;
+  d.innerHTML=`<div class="lb">${lb}</div>${h}`;g.appendChild(d)});
+ st.appendChild(g)}
+
+/* 5 · CUADRICULA */
+st=slide('capturas');
+{const g=el('div','grid'),G=DATA.groups.grid,n=G.length,gap=14.4;
+ // columnas que llenan la reticula sin huecos (o con el menor hueco) y caben en la hoja
+ let NC=4,best=1e9;for(let c=3;c<=6;c++){const r=Math.ceil(n/c),w=(1600-108-(c-1)*gap)/c,h=w*789/1527;
+   if(r*h+(r-1)*gap>780)continue;const sc=(r*c-n)*1000-w;if(sc<best){best=sc;NC=c}}
+ const NR=Math.ceil(n/NC),cw=(1600-108-(NC-1)*gap)/NC,ch=cw*789/1527,y0=(900-(NR*ch+(NR-1)*gap))/2;
+ G.forEach((k,i)=>{const c=el('div','card');const col=i%NC,row=Math.floor(i/NC);
+  Object.assign(c.style,{left:(54+col*(cw+gap))+'px',top:(y0+row*(ch+gap))+'px',width:cw+'px',height:ch+'px',
+   transformOrigin:(col==0?'left':col==NC-1?'right':'center')+' '+(row==0?'top':row==NR-1?'bottom':'center'),
+   transitionDelay:(.04*i)+'s'});c.style.setProperty('--hz',(2.15*4/NC*1.0).toFixed(2));
+  c.innerHTML=`<img src="${S(k)}" alt="${DATA.cap[k]}" loading="lazy" style="object-position:50% ${({zoom_hygrocybe:'82%',sidebar_phillipsia:'23%',popup_phillipsia:'0%'})[k]||'0%'}"><div class="lg"><span>${DATA.cap[k]}</span></div>`;
+  c.onclick=()=>openViewer('grid',k);g.appendChild(c)});
+ st.appendChild(g);
+}
+
+/* 5 · MAPAS BASE */
+st=slide('mapas-base');
+st.insertAdjacentHTML('beforeend',`<div class="h1 rv">Mapas base</div>`);
+{const w=el('div','strips');[['v1_satelite','Satélite'],['v2_topo','Topográfico'],['v3_calles','Calles'],['v4_sat_etq','Satélite + etiquetas']]
+ .forEach(([k,t],i)=>{const s=el('div','strip rv d'+(i+1));s.innerHTML=`<div class="im"><img src="${S(k)}" alt="${t}"></div><div class="t">${t}</div>`;
+  s.onclick=()=>openViewer('capas',k);w.appendChild(s)});st.appendChild(w)}
+
+
+/* 6 · FUNCIONES */
+st=slide('funciones');
+{const F=[['Buscar por todo','Especie, color, sustrato, comestibilidad, zona, código o fecha.','20_busqueda'],
+ ['Revisar zonas al instante','Saltos a Prosperina, Cerro Blanco o ambos; lista de sitios de muestreo.','12_mapa_cerroblanco'],
+ ['Nuevos registros','Dibujar puntos, senderos y áreas; ubicar a mano especies sin coordenada.','13_mapa_todo'],
+ ['Ficha a un clic','Cada hongo de la portada abre el mapa con su ficha cargada.','sidebar_phillipsia'],
+ ['Registros de campo','Popup con código, fecha, altitud, clima y coordenada exacta.','popup_phillipsia'],
+ ['Medir distancias','Trazar sobre el satélite y leer metros o kilómetros.','16_capas_topo'],
+ ['Capas y mapas base','Satélite, topográfico o calles; bosques, senderos y sitios.','v2_topo'],
+ ['Coordenadas en vivo','Bajo el cursor; clic derecho las copia.','15_registro_popup']];
+ st.insertAdjacentHTML('beforeend','<div class="h1 rv">Funciones</div>');
+ const L_=el('div','fx');const P_=el('div','fxp rv d2');
+ P_.innerHTML=`<div class="im"><img alt=""></div><div class="c"></div>`;
+ const pi=P_.querySelector('img'),pc=P_.querySelector('.c');
+ const hx='0,-15 13,-7.5 13,7.5 0,15 -13,7.5 -13,-7.5';
+ function sel(i){[...L_.children].forEach((r,j)=>r.classList.toggle('on',j===i));pi.style.opacity=0;
+   setTimeout(()=>{pi.src=S(F[i][2]);pi.style.objectPosition='50% '+(F[i][2]=='sidebar_phillipsia'?'23%':'0');pi.style.opacity=1},120);
+   pc.textContent=F[i][0]}
+ F.forEach((f,i)=>{const r=el('div','fr rv d'+Math.min(4,1+(i>>1)));
+  r.innerHTML=`<svg width="34" height="34" viewBox="-17 -17 34 34"><polygon points="${hx}"/><text y="5" text-anchor="middle" style="font-size:13px">${i+1}</text></svg>
+   <div><b>${f[0]}</b><span>${f[1]}</span></div>`;
+  r.addEventListener('mouseenter',()=>sel(i));L_.appendChild(r)});
+ st.append(L_,P_);sel(0);
+ F.forEach(f=>{const i=new Image();i.src=S(f[2])})}
+
+/* 7 · PALETA */
+st=slide('paleta');
+st.insertAdjacentHTML('beforeend',`<div class="h1 rv">Paleta de colores</div>`);
+{const P=[['hygrocybe','Carbon','#000000','Texto y panel Info'],['pycnoporus','Gallery plate','#E5E7EB','Fondo de portada'],
+ ['cookeina','Paper white','#FFFFFF','Texto sobre negro y fichas'],['xylaria','Voltage lime','#E2FF70','Único acento: Entrar al mapa'],
+ ['trametes','Chalk','#F4F4F4','Etiquetas y botón secundario']];
+ const w=el('div','pal');
+ P.forEach(([f,n,hx,u],i)=>{const s=el('div','sw rv d'+Math.min(i+1,4));const light=['#E5E7EB','#FFFFFF','#F4F4F4'].includes(hx);
+  s.innerHTML=`<div class="box"><div class="fl" style="--dur:${15+i*1.6}s;--del:${-i*2.1}s;--rb:${1.2+i%3}deg">
+   <div class="${light?'ol':''}"><div class="m" data-f="${f}" style="background:${hx};-webkit-mask-image:url(${Hm(f)});mask-image:url(${Hm(f)})"></div></div></div></div>
+   <div class="nm">${n}</div><div class="hx">${hx}</div><div class="us">${u}</div><div class="ok">Clic para copiar ${hx}</div>`;
+  s.onclick=async()=>{const ok=s.querySelector('.ok');try{await navigator.clipboard.writeText(hx);ok.textContent='Copiado '+hx}
+   catch(e){ok.textContent=hx}setTimeout(()=>ok.textContent='Clic para copiar '+hx,1400)};
+  w.appendChild(s)});
+ st.appendChild(w);
+ // tamaño de cada silueta segun la proporcion de su imagen
+ w.querySelectorAll('.m').forEach(m=>{const im=new Image();im.onload=()=>{const k=Math.min(240/im.width,300/im.height);
+  m.style.width=im.width*k+'px';m.style.height=im.height*k+'px'};im.src=Hm(m.dataset.f)})}
+
+/* 7 · FLUJO */
+st=slide('flujo');
+st.insertAdjacentHTML('beforeend',`<div class="h1 rv">Flujo de la data</div>
+ <svg id="flow" viewBox="0 0 1600 900" class="rv d2"></svg><div id="prev"><div class="im"><img alt=""></div><div class="c"><b></b><i>clic → ver sección</i></div></div>`);
+
+/* 8 · CIERRE */
+st=slide('cierre');hongos(st,DATA.L[2]);logos(st);
+st.insertAdjacentHTML('beforeend',`<a class="ver" href="${SITE}" target="_blank" rel="noopener">Ver la página →</a>`);
+
+/* ── FLUJO: nodos que flotan, lineas que los siguen y vista previa por cercania ── */
+const NS='http://www.w3.org/2000/svg',svg=document.getElementById('flow'),N=DATA.nodes;
+const mk=(t,a)=>{const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);return e};
+const gL=mk('g',{}),gN=mk('g',{}),gT=mk('g',{});svg.append(gL,gN,gT);
+function pth(a,b,k){const dx=b[0]-a[0],dy=b[1]-a[1];if(k=='l')return[a,b];
+  if(k=='h')return[a,[a[0]+.18*dx,a[1]+.5*dy],[a[0]+.6*dx,a[1]+.5*dy],b];
+  return[a,[a[0]+.5*dx,a[1]+.18*dy],[a[0]+.5*dx,a[1]+.6*dy],b]}
+const EX=[{a:'hov',b:'H3',mid:[[495,760],[695,560]],off:[-15,25],lab:'clic → su ficha (?sp=)',lx:435,ly:745},
+          {a:'H3',b:'H2',mid:[[775,300],[435,255]],off:[0,0],lab:'Info ↗',lx:615,ly:268}];
+DATA.edges.forEach(e=>{e.el=mk('polyline',{class:e.d?'dash':''});gL.appendChild(e.el);
+  if(e.lab){e.t=mk('text',{class:'lb g','text-anchor':'middle'});e.t.textContent=e.lab;gT.appendChild(e.t)}});
+EX.forEach(e=>{e.el=mk('polyline',{class:'dash'});gL.appendChild(e.el);const t=mk('text',{class:'lb g','text-anchor':'middle',x:e.lx,y:e.ly});
+  t.textContent=e.lab;gT.appendChild(t)});
+const hexa=r=>[...Array(6)].map((_,i)=>`${(r*Math.cos(i*Math.PI/3)).toFixed(1)},${(r*Math.sin(i*Math.PI/3)).toFixed(1)}`).join(' ');
+Object.entries(N).forEach(([id,n],i)=>{
+  const g=mk('g',{class:'nd'});n.g_=g;n.ph=i*1.7;n.ph2=i*2.3;n.amp=n.s=='hex'||n.s=='flor'?5:7;
+  let sh;
+  if(n.s=='hex'){sh=mk('polygon',{points:hexa(24),fill:'#fff',stroke:'#111','stroke-width':1.6,class:'sh'});g.append(sh);
+    const t=mk('text',{y:7,'text-anchor':'middle',style:'font-size:18px;pointer-events:none'});t.textContent=n.num;g.append(t)}
+  else if(n.s=='sq'||n.s=='sqdot'){sh=mk('rect',{x:-18,y:-18,width:36,height:36,fill:'#fff',stroke:'#111','stroke-width':1.6,class:'sh'});g.append(sh);
+    if(n.s=='sqdot')g.append(mk('circle',{r:3.5,fill:'#777'}))}
+  else if(n.s=='tri'){sh=mk('polygon',{points:'0,-22 22,16 -22,16',fill:'#fff',stroke:'#111','stroke-width':1.6,class:'sh'});g.append(sh)}
+  else if(n.s=='dot'){sh=mk('circle',{r:19,fill:'#111',class:'sh'});g.append(sh,mk('circle',{r:4,fill:'#fff'}))}
+  else{sh=mk('g',{class:'sh'});for(let a=0;a<360;a+=40){const r=a*Math.PI/180;
+    sh.append(mk('circle',{cx:15*Math.cos(r),cy:15*Math.sin(r),r:9,fill:'#e2ff70',stroke:'#111','stroke-width':1.6}))}
+    sh.append(mk('circle',{r:15,fill:'#e2ff70'}));g.append(sh)}
+  const ty=n.s=='flor'?56:46;
+  n.lines.forEach((l,j)=>{const t=mk('text',{class:'lb',y:ty+j*27,'text-anchor':'middle'});t.textContent=l;g.append(t)});
+  if(n.sub){const t=mk('text',{class:'lb g',y:ty+n.lines.length*27-2,'text-anchor':'middle'});t.textContent=n.sub;g.append(t)}
+  g.addEventListener('click',()=>openViewer(n.g,n.shot));
+  gN.appendChild(g)});
+let T0=performance.now(),flowOn=false;
+function pos(id){const n=N[id],t=(performance.now()-T0)/1000;
+  return[n.x+n.amp*Math.sin(t*.55+n.ph),n.y+n.amp*Math.cos(t*.43+n.ph2)]}
+function frame(){
+  if(flowOn){
+    const P={};for(const id in N){P[id]=pos(id);N[id].g_.setAttribute('transform',`translate(${P[id][0].toFixed(1)},${P[id][1].toFixed(1)})`)}
+    DATA.edges.forEach(e=>{const p=pth(P[e.a],P[e.b],e.k);e.el.setAttribute('points',p.map(q=>q[0].toFixed(1)+','+q[1].toFixed(1)).join(' '));
+      if(e.t){e.t.setAttribute('x',((p[1][0]+p[2][0])/2).toFixed(0));e.t.setAttribute('y',(p[1][1]-10).toFixed(0))}});
+    EX.forEach(e=>{const a=P[e.a],b=[P[e.b][0]+e.off[0],P[e.b][1]+e.off[1]];
+      e.el.setAttribute('points',[a,...e.mid,b].map(q=>q[0].toFixed(1)+','+q[1].toFixed(1)).join(' '))});
+    if(act)placePrev(act);
+  }
+  requestAnimationFrame(frame)}
+requestAnimationFrame(frame);
+
+const prev=document.getElementById('prev'),pimg=prev.querySelector('img'),pcap=prev.querySelector('b');
+const FS=1312/1600,FX=144,FY=118;let act=null;
+function placePrev(id){const p=pos(id),sx=FX+p[0]*FS,sy=FY+p[1]*FS,w=420,h=w*789/1527+56;
+  let x=sx<800?sx+46:sx-46-w,y=Math.max(20,Math.min(880-h,sy-h/2));prev.style.left=x+'px';prev.style.top=y+'px'}
+function setAct(id){if(id===act)return;
+  if(act){N[act].g_.classList.remove('act');DATA.edges.forEach(e=>{if(e.a==act||e.b==act)e.el.classList.remove('hl')})}
+  act=id;
+  if(!id){prev.classList.remove('on');return}
+  N[id].g_.classList.add('act');DATA.edges.forEach(e=>{if(e.a==id||e.b==id)e.el.classList.add('hl')});
+  pimg.src=S(N[id].shot);pcap.textContent=DATA.cap[N[id].shot];placePrev(id);prev.classList.add('on')}
+const fstage=document.getElementById('flujo').querySelector('.stage');
+fstage.addEventListener('mousemove',ev=>{const r=fstage.getBoundingClientRect(),k=r.width/1600;
+  const mx=(ev.clientX-r.left)/k,my=(ev.clientY-r.top)/k;let best=null,bd=70;
+  for(const id in N){const p=pos(id),d=Math.hypot(FX+p[0]*FS-mx,FY+p[1]*FS-my);if(d<bd){bd=d;best=id}}
+  setAct(best)});
+fstage.addEventListener('mouseleave',()=>setAct(null));
+fstage.addEventListener('click',ev=>{if(act&&!ev.target.closest('.nd'))openViewer(N[act].g,N[act].shot)});
+// precarga de pantallazos del flujo
+Object.values(N).forEach(n=>{const i=new Image();i.src=S(n.shot)});
+
+/* ── VISOR TIPO PDF: paginas blancas, zoom con pellizco, todo sigue en movimiento ── */
+const slides=[...document.querySelectorAll('.slide')];
+const root=document.documentElement;let Z=1,base=1000,cur=0;
+function fitBase(){base=Math.max(320,Math.min(innerWidth-120,(innerHeight-56)*16/9))}
+function apply(){const pw=base*Z;root.style.setProperty('--pw',pw+'px');root.style.setProperty('--k',pw/1600);}
+function setZoom(z,ax,ay){z=Math.max(.35,Math.min(4,z));if(Math.abs(z-Z)<1e-4)return;
+  const r=deck.getBoundingClientRect();if(ax==null){ax=r.width/2;ay=r.height/2}
+  const f=z/Z,cx=deck.scrollLeft+ax,cy=deck.scrollTop+ay;Z=z;apply();
+  deck.scrollLeft=cx*f-ax;deck.scrollTop=cy*f-ay}
+fitBase();apply();
+addEventListener('resize',()=>{const t=deck.scrollTop/Math.max(1,deck.scrollHeight);fitBase();apply();deck.scrollTop=t*deck.scrollHeight});
+// pellizco en trackpad (Chrome/Edge/Firefox mandan wheel + ctrlKey)
+deck.addEventListener('wheel',e=>{if(!e.ctrlKey)return;e.preventDefault();const r=deck.getBoundingClientRect();
+  const dy=Math.max(-25,Math.min(25,e.deltaY));setZoom(Z*Math.exp(-dy*.01),e.clientX-r.left,e.clientY-r.top)},{passive:false});
+// pellizco en trackpad de Safari
+let gz=1;document.addEventListener('gesturestart',e=>{e.preventDefault();gz=Z});
+document.addEventListener('gesturechange',e=>{e.preventDefault();const r=deck.getBoundingClientRect();
+  setZoom(gz*e.scale,e.clientX-r.left,e.clientY-r.top)});
+// pellizco con dos dedos en pantalla tactil
+let t0=null;
+deck.addEventListener('touchstart',e=>{if(e.touches.length==2){const[a,b]=e.touches;
+  t0={d:Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY),z:Z}}},{passive:true});
+deck.addEventListener('touchmove',e=>{if(e.touches.length==2&&t0){e.preventDefault();const[a,b]=e.touches,r=deck.getBoundingClientRect();
+  setZoom(t0.z*Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY)/t0.d,(a.clientX+b.clientX)/2-r.left,(a.clientY+b.clientY)/2-r.top)}},{passive:false});
+deck.addEventListener('touchend',e=>{if(e.touches.length<2)t0=null});
+function fitZoom(){const p=cur;Z=1;apply();deck.scrollLeft=0;go(p,'auto')}
+
+function go(i,beh){i=Math.max(0,Math.min(slides.length-1,i));
+  deck.scrollTo({top:slides[i].offsetTop-20,behavior:beh||'smooth'})}
+function upd(){const mid=deck.scrollTop+deck.clientHeight/2;let bi=0,bd=1e9;
+  slides.forEach((s,i)=>{const d=Math.abs(s.offsetTop+s.offsetHeight/2-mid);if(d<bd){bd=d;bi=i}});
+  cur=bi}
+deck.addEventListener('scroll',upd,{passive:true});upd();
+// cada pagina se anima al entrar en pantalla y sigue moviendose mientras se ve
+const io=new IntersectionObserver(es=>es.forEach(e=>{e.target.classList.toggle('on',e.isIntersecting);
+  if(e.target.id==='flujo'){flowOn=e.isIntersecting;if(!flowOn)setAct(null)}}),{root:deck,threshold:.12});
+slides.forEach(s=>io.observe(s));
+
+/* ── VISOR DE SECCION ── */
+const viewer=document.getElementById('viewer'),vlist=document.getElementById('vlist'),vdots=document.getElementById('vdots');
+let vOpen=false,vio=null;
+function openViewer(g,start){const ks=DATA.groups[g];vlist.innerHTML='';vdots.innerHTML='';
+  ks.forEach((k,i)=>{const s=el('div','vs');s.innerHTML=`<img src="${S(k)}" alt="${DATA.cap[k]}">
+   <div class="vc"><b>${DATA.cap[k]}</b><span>${String(i+1).padStart(2,'0')} / ${String(ks.length).padStart(2,'0')}</span></div>`;
+   vlist.appendChild(s);vdots.appendChild(el('i'))});
+  viewer.classList.add('on');vOpen=true;setAct(null);
+  const idx=Math.max(0,ks.indexOf(start));vlist.style.scrollBehavior='auto';vlist.scrollTop=idx*vlist.clientHeight;vlist.style.scrollBehavior='';
+  if(vio)vio.disconnect();
+  vio=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){const i=[...vlist.children].indexOf(e.target);
+    [...vlist.children].forEach(s=>s.classList.toggle('on',s===e.target));[...vdots.children].forEach((d,j)=>d.classList.toggle('on',j===i))}}),
+    {root:vlist,threshold:.55});
+  [...vlist.children].forEach(s=>vio.observe(s))}
+function closeViewer(){viewer.classList.remove('on');vOpen=false}
+document.getElementById('vclose').onclick=closeViewer;
+function vgo(d){const i=Math.round(vlist.scrollTop/vlist.clientHeight)+d;vlist.scrollTo({top:Math.max(0,i)*vlist.clientHeight})}
+
+addEventListener('keydown',e=>{
+  const nx=['ArrowDown','ArrowRight','PageDown',' '].includes(e.key),pv=['ArrowUp','ArrowLeft','PageUp'].includes(e.key);
+  if(vOpen){if(e.key==='Escape')closeViewer();else if(nx){e.preventDefault();vgo(1)}else if(pv){e.preventDefault();vgo(-1)}return}
+  if((e.metaKey||e.ctrlKey)&&(e.key==='='||e.key==='+')){e.preventDefault();setZoom(Z*1.25);return}
+  if((e.metaKey||e.ctrlKey)&&e.key==='-'){e.preventDefault();setZoom(Z/1.25);return}
+  if((e.metaKey||e.ctrlKey)&&e.key==='0'){e.preventDefault();fitZoom();return}
+  if(['PageDown',' '].includes(e.key)||(e.key==='ArrowRight')){e.preventDefault();go(cur+1)}
+  else if(['PageUp'].includes(e.key)||e.key==='ArrowLeft'){e.preventDefault();go(cur-1)}
+  else if(e.key==='Home')go(0);else if(e.key==='End')go(slides.length-1)});
+</script>
+</body>
+</html>
